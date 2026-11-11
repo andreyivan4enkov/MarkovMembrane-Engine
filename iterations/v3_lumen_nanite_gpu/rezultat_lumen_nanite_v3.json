@@ -1,0 +1,133 @@
+{
+  "params": 86145,
+  "history": [
+    {
+      "step": 1,
+      "bpc": 135.801,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.0232,
+      "loaded_volume": 0.1453,
+      "mean_dist": 1.0183,
+      "mean_vectors_per_obj": 1.1625,
+      "gi_share": 0.5793,
+      "shadow_occluded": 0.4585
+    },
+    {
+      "step": 50,
+      "bpc": 85.3202,
+      "near_objects_frac": 0.0187,
+      "detail_volume": 0.0508,
+      "loaded_volume": 0.1695,
+      "mean_dist": 1.0472,
+      "mean_vectors_per_obj": 1.3557,
+      "gi_share": 0.569,
+      "shadow_occluded": 0.4037
+    },
+    {
+      "step": 100,
+      "bpc": 8.7534,
+      "near_objects_frac": 0.0158,
+      "detail_volume": 0.0667,
+      "loaded_volume": 0.1834,
+      "mean_dist": 0.9097,
+      "mean_vectors_per_obj": 1.4672,
+      "gi_share": 0.5174,
+      "shadow_occluded": 0.3826
+    },
+    {
+      "step": 150,
+      "bpc": 4.548,
+      "near_objects_frac": 0.0239,
+      "detail_volume": 0.0688,
+      "loaded_volume": 0.1852,
+      "mean_dist": 1.0226,
+      "mean_vectors_per_obj": 1.4818,
+      "gi_share": 0.5511,
+      "shadow_occluded": 0.3996
+    },
+    {
+      "step": 200,
+      "bpc": 4.0836,
+      "near_objects_frac": 0.0243,
+      "detail_volume": 0.0666,
+      "loaded_volume": 0.1833,
+      "mean_dist": 0.9573,
+      "mean_vectors_per_obj": 1.4662,
+      "gi_share": 0.5833,
+      "shadow_occluded": 0.3511
+    },
+    {
+      "step": 250,
+      "bpc": 3.8013,
+      "near_objects_frac": 0.0266,
+      "detail_volume": 0.066,
+      "loaded_volume": 0.1828,
+      "mean_dist": 1.0062,
+      "mean_vectors_per_obj": 1.4622,
+      "gi_share": 0.5936,
+      "shadow_occluded": 0.3622
+    },
+    {
+      "step": 300,
+      "bpc": 3.7324,
+      "near_objects_frac": 0.0268,
+      "detail_volume": 0.0636,
+      "loaded_volume": 0.1807,
+      "mean_dist": 1.023,
+      "mean_vectors_per_obj": 1.4453,
+      "gi_share": 0.617,
+      "shadow_occluded": 0.3468
+    },
+    {
+      "step": 350,
+      "bpc": 3.7769,
+      "near_objects_frac": 0.0276,
+      "detail_volume": 0.0638,
+      "loaded_volume": 0.1808,
+      "mean_dist": 1.0176,
+      "mean_vectors_per_obj": 1.4464,
+      "gi_share": 0.6152,
+      "shadow_occluded": 0.3453
+    },
+    {
+      "step": 400,
+      "bpc": 3.4679,
+      "near_objects_frac": 0.0281,
+      "detail_volume": 0.063,
+      "loaded_volume": 0.1801,
+      "mean_dist": 1.0206,
+      "mean_vectors_per_obj": 1.4409,
+      "gi_share": 0.6217,
+      "shadow_occluded": 0.3381
+    }
+  ],
+  "validation": {
+    "v3_native": {
+      "bpc": 3.5779,
+      "ppl": 11.94,
+      "stats": {
+        "near_objects_frac": 0.028498410329788545,
+        "detail_volume": 0.06322481851034528,
+        "loaded_volume": 0.1803217164952041,
+        "mean_dist": 1.0485016409354875,
+        "mean_vectors_per_obj": 1.4425737319616327,
+        "gi_share": 0.621714634734367,
+        "shadow_occluded": 0.34723383339145536
+      }
+    },
+    "v3_vram": {
+      "bpc": 3.5779,
+      "ppl": 11.94,
+      "stats": {
+        "near_objects_frac": 0.028498410329788545,
+        "detail_volume": 0.06322481851034528,
+        "loaded_volume": 0.1803217164952041,
+        "mean_dist": 1.0485016409354875,
+        "mean_vectors_per_obj": 1.4425737319616327,
+        "gi_share": 0.621714634734367,
+        "shadow_occluded": 0.34723383339145536
+      }
+    }
+  },
+  "sample": "The history of science is al me aterere ms 'st ghote Cct bech ces on te wa wa ind �Torepant wad f bonalg lanmed Sas"
+}
