@@ -1,0 +1,128 @@
+{
+  "params": 46054,
+  "backprop_check_before": {
+    "total_facets": 6144,
+    "rewritten_facets_in_backprop": 1933,
+    "untouched_exact_zero_facets": 4211,
+    "rewritten_percent": 31.46
+  },
+  "backprop_check_after": {
+    "total_facets": 6144,
+    "rewritten_facets_in_backprop": 2130,
+    "untouched_exact_zero_facets": 4014,
+    "rewritten_percent": 34.67
+  },
+  "history": [
+    {
+      "step": 1,
+      "bpc": 8.2612,
+      "avg_colliding_neighbors": 12.4,
+      "active_coords_frac": 0.0602,
+      "touched_nodes_frac": 0.2073,
+      "avg_cascade_waves": 2.9844,
+      "err_before": 0.9921,
+      "err_after": 0.9929,
+      "free_energy": 0.4977
+    },
+    {
+      "step": 50,
+      "bpc": 4.569,
+      "avg_colliding_neighbors": 13.0,
+      "active_coords_frac": 0.0639,
+      "touched_nodes_frac": 0.2111,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.9687,
+      "err_after": 0.973,
+      "free_energy": 0.4777
+    },
+    {
+      "step": 100,
+      "bpc": 4.0384,
+      "avg_colliding_neighbors": 13.6,
+      "active_coords_frac": 0.0659,
+      "touched_nodes_frac": 0.2127,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.9579,
+      "err_after": 0.9655,
+      "free_energy": 0.4703
+    },
+    {
+      "step": 150,
+      "bpc": 3.9769,
+      "avg_colliding_neighbors": 14.15,
+      "active_coords_frac": 0.0675,
+      "touched_nodes_frac": 0.2087,
+      "avg_cascade_waves": 3.1719,
+      "err_before": 0.9319,
+      "err_after": 0.9387,
+      "free_energy": 0.4448
+    },
+    {
+      "step": 200,
+      "bpc": 3.6792,
+      "avg_colliding_neighbors": 14.62,
+      "active_coords_frac": 0.0661,
+      "touched_nodes_frac": 0.2029,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.9024,
+      "err_after": 0.907,
+      "free_energy": 0.4156
+    },
+    {
+      "step": 250,
+      "bpc": 3.6214,
+      "avg_colliding_neighbors": 15.17,
+      "active_coords_frac": 0.0669,
+      "touched_nodes_frac": 0.2088,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.8895,
+      "err_after": 0.8897,
+      "free_energy": 0.4004
+    },
+    {
+      "step": 300,
+      "bpc": 3.4675,
+      "avg_colliding_neighbors": 15.79,
+      "active_coords_frac": 0.0687,
+      "touched_nodes_frac": 0.2134,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.8667,
+      "err_after": 0.8637,
+      "free_energy": 0.3779
+    },
+    {
+      "step": 350,
+      "bpc": 3.5825,
+      "avg_colliding_neighbors": 16.29,
+      "active_coords_frac": 0.0696,
+      "touched_nodes_frac": 0.2147,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.8522,
+      "err_after": 0.8464,
+      "free_energy": 0.3636
+    },
+    {
+      "step": 400,
+      "bpc": 3.3068,
+      "avg_colliding_neighbors": 16.88,
+      "active_coords_frac": 0.0697,
+      "touched_nodes_frac": 0.2114,
+      "avg_cascade_waves": 3.0,
+      "err_before": 0.8337,
+      "err_after": 0.8225,
+      "free_energy": 0.3436
+    }
+  ],
+  "validation": {
+    "bpc": 3.401,
+    "ppl": 10.56,
+    "stats": {
+      "active_coords_frac": 0.06948949117397689,
+      "touched_nodes_frac": 0.2105295687370132,
+      "avg_cascade_waves": 2.514636075949367,
+      "err_before": 0.8333976086512019,
+      "err_after": 0.8222247201572114,
+      "free_energy": 0.3434063663965539
+    }
+  }
+}
