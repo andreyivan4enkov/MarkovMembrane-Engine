@@ -1,0 +1,245 @@
+{
+  "params": 87000,
+  "history": [
+    {
+      "step": 1,
+      "optics_only_bpc": 135.4968,
+      "optics_avalanche_bpc": 135.4818,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0003,
+        "detail_volume": 0.2567,
+        "loaded_volume": 0.3496,
+        "mean_dist": 0.9568,
+        "mean_vectors_per_obj": 2.7966,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2784,
+        "loaded_volume": 0.3686,
+        "mean_dist": 0.9568,
+        "mean_vectors_per_obj": 2.9489,
+        "avalanche_added_groups": 0.3283
+      }
+    },
+    {
+      "step": 50,
+      "optics_only_bpc": 35.1682,
+      "optics_avalanche_bpc": 36.5711,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2946,
+        "loaded_volume": 0.3828,
+        "mean_dist": 1.1172,
+        "mean_vectors_per_obj": 3.0622,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3126,
+        "loaded_volume": 0.3985,
+        "mean_dist": 1.1877,
+        "mean_vectors_per_obj": 3.1883,
+        "avalanche_added_groups": 1.1888
+      }
+    },
+    {
+      "step": 100,
+      "optics_only_bpc": 6.6785,
+      "optics_avalanche_bpc": 7.4049,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2964,
+        "loaded_volume": 0.3844,
+        "mean_dist": 1.0798,
+        "mean_vectors_per_obj": 3.0751,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3122,
+        "loaded_volume": 0.3981,
+        "mean_dist": 1.1726,
+        "mean_vectors_per_obj": 3.1851,
+        "avalanche_added_groups": 1.276
+      }
+    },
+    {
+      "step": 150,
+      "optics_only_bpc": 4.1877,
+      "optics_avalanche_bpc": 4.3835,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2974,
+        "loaded_volume": 0.3853,
+        "mean_dist": 1.0481,
+        "mean_vectors_per_obj": 3.082,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3127,
+        "loaded_volume": 0.3986,
+        "mean_dist": 1.1229,
+        "mean_vectors_per_obj": 3.189,
+        "avalanche_added_groups": 1.2819
+      }
+    },
+    {
+      "step": 200,
+      "optics_only_bpc": 3.9443,
+      "optics_avalanche_bpc": 4.1203,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2969,
+        "loaded_volume": 0.3848,
+        "mean_dist": 1.0201,
+        "mean_vectors_per_obj": 3.0786,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3112,
+        "loaded_volume": 0.3973,
+        "mean_dist": 1.0734,
+        "mean_vectors_per_obj": 3.1782,
+        "avalanche_added_groups": 1.2516
+      }
+    },
+    {
+      "step": 250,
+      "optics_only_bpc": 3.6383,
+      "optics_avalanche_bpc": 3.7962,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2964,
+        "loaded_volume": 0.3844,
+        "mean_dist": 0.9974,
+        "mean_vectors_per_obj": 3.0748,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3097,
+        "loaded_volume": 0.396,
+        "mean_dist": 1.0313,
+        "mean_vectors_per_obj": 3.1681,
+        "avalanche_added_groups": 1.2293
+      }
+    },
+    {
+      "step": 300,
+      "optics_only_bpc": 3.5996,
+      "optics_avalanche_bpc": 3.7131,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2953,
+        "loaded_volume": 0.3834,
+        "mean_dist": 0.9872,
+        "mean_vectors_per_obj": 3.0672,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3092,
+        "loaded_volume": 0.3956,
+        "mean_dist": 1.0051,
+        "mean_vectors_per_obj": 3.1647,
+        "avalanche_added_groups": 1.1991
+      }
+    },
+    {
+      "step": 350,
+      "optics_only_bpc": 3.6434,
+      "optics_avalanche_bpc": 3.7241,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2952,
+        "loaded_volume": 0.3833,
+        "mean_dist": 0.9754,
+        "mean_vectors_per_obj": 3.0664,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3081,
+        "loaded_volume": 0.3946,
+        "mean_dist": 0.9661,
+        "mean_vectors_per_obj": 3.1566,
+        "avalanche_added_groups": 1.1869
+      }
+    },
+    {
+      "step": 400,
+      "optics_only_bpc": 3.3801,
+      "optics_avalanche_bpc": 3.4627,
+      "optics_only_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.2951,
+        "loaded_volume": 0.3832,
+        "mean_dist": 0.9664,
+        "mean_vectors_per_obj": 3.0658,
+        "avalanche_added_groups": 0.0
+      },
+      "optics_avalanche_stats": {
+        "near_objects_frac": 0.0,
+        "detail_volume": 0.3075,
+        "loaded_volume": 0.394,
+        "mean_dist": 0.9442,
+        "mean_vectors_per_obj": 3.1522,
+        "avalanche_added_groups": 1.1805
+      }
+    }
+  ],
+  "validation": {
+    "v2_optics_only_native": {
+      "bpc": 3.4891,
+      "ppl": 11.23,
+      "stats": {
+        "near_objects_frac": 2.60966070861367e-05,
+        "detail_volume": 0.2951725716329325,
+        "loaded_volume": 0.3832760005560604,
+        "mean_dist": 0.9700156691708144,
+        "mean_vectors_per_obj": 3.0662080044484834,
+        "avalanche_added_groups": 0.0
+      }
+    },
+    "v2_optics_only_vram": {
+      "bpc": 3.4891,
+      "ppl": 11.23,
+      "stats": {
+        "near_objects_frac": 2.60966070861367e-05,
+        "detail_volume": 0.2951725716329325,
+        "loaded_volume": 0.3832760005560604,
+        "mean_dist": 0.9700156691708144,
+        "mean_vectors_per_obj": 3.0662080044484834,
+        "avalanche_added_groups": 0.0
+      }
+    },
+    "v2_optics_avalanche_native": {
+      "bpc": 3.5386,
+      "ppl": 11.62,
+      "stats": {
+        "near_objects_frac": 5.4024555296725536e-05,
+        "detail_volume": 0.3075205176942963,
+        "loaded_volume": 0.39408045516738405,
+        "mean_dist": 0.950006450781842,
+        "mean_vectors_per_obj": 3.1526436413390724,
+        "avalanche_added_groups": 1.1800922004482417
+      }
+    },
+    "v2_optics_avalanche_vram": {
+      "bpc": 3.5386,
+      "ppl": 11.62,
+      "stats": {
+        "near_objects_frac": 5.4024555296725536e-05,
+        "detail_volume": 0.3075205176942963,
+        "loaded_volume": 0.39408045516738405,
+        "mean_dist": 0.950006450781842,
+        "mean_vectors_per_obj": 3.1526436413390724,
+        "avalanche_added_groups": 1.1800922004482417
+      }
+    }
+  },
+  "sample": "The history of science is al me an thea ms 'st gho ) Ches angg of pres Dwf wa ind r Thee antund so benalghevemed Sas"
+}

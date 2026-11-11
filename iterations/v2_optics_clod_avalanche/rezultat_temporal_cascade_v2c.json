@@ -1,0 +1,122 @@
+{
+  "params": 91614,
+  "history": [
+    {
+      "step": 1,
+      "bpc": 135.4149,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.2947,
+      "loaded_volume": 0.3828,
+      "mean_dist": 0.9934,
+      "mean_vectors_per_obj": 3.0628,
+      "avalanche_share": 0.4518
+    },
+    {
+      "step": 50,
+      "bpc": 22.6866,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.2949,
+      "loaded_volume": 0.383,
+      "mean_dist": 1.2215,
+      "mean_vectors_per_obj": 3.0643,
+      "avalanche_share": 0.5989
+    },
+    {
+      "step": 100,
+      "bpc": 5.6925,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.2906,
+      "loaded_volume": 0.3792,
+      "mean_dist": 1.2141,
+      "mean_vectors_per_obj": 3.0339,
+      "avalanche_share": 0.5667
+    },
+    {
+      "step": 150,
+      "bpc": 4.4296,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.2895,
+      "loaded_volume": 0.3783,
+      "mean_dist": 1.1601,
+      "mean_vectors_per_obj": 3.0264,
+      "avalanche_share": 0.5535
+    },
+    {
+      "step": 200,
+      "bpc": 4.0146,
+      "near_objects_frac": 0.0001,
+      "detail_volume": 0.2854,
+      "loaded_volume": 0.3747,
+      "mean_dist": 1.1206,
+      "mean_vectors_per_obj": 2.9977,
+      "avalanche_share": 0.5491
+    },
+    {
+      "step": 250,
+      "bpc": 3.732,
+      "near_objects_frac": 0.0001,
+      "detail_volume": 0.2841,
+      "loaded_volume": 0.3736,
+      "mean_dist": 1.083,
+      "mean_vectors_per_obj": 2.9884,
+      "avalanche_share": 0.5421
+    },
+    {
+      "step": 300,
+      "bpc": 3.6281,
+      "near_objects_frac": 0.0,
+      "detail_volume": 0.2846,
+      "loaded_volume": 0.3741,
+      "mean_dist": 1.03,
+      "mean_vectors_per_obj": 2.9925,
+      "avalanche_share": 0.5451
+    },
+    {
+      "step": 350,
+      "bpc": 3.6115,
+      "near_objects_frac": 0.0003,
+      "detail_volume": 0.284,
+      "loaded_volume": 0.3735,
+      "mean_dist": 0.9876,
+      "mean_vectors_per_obj": 2.9879,
+      "avalanche_share": 0.5552
+    },
+    {
+      "step": 400,
+      "bpc": 3.3483,
+      "near_objects_frac": 0.0002,
+      "detail_volume": 0.285,
+      "loaded_volume": 0.3743,
+      "mean_dist": 0.9548,
+      "mean_vectors_per_obj": 2.9948,
+      "avalanche_share": 0.5616
+    }
+  ],
+  "validation": {
+    "v2c_native": {
+      "bpc": 3.4778,
+      "ppl": 11.14,
+      "stats": {
+        "near_objects_frac": 0.0003214003229027474,
+        "detail_volume": 0.2846237224868581,
+        "loaded_volume": 0.37404575654725986,
+        "mean_dist": 0.9576253340214114,
+        "mean_vectors_per_obj": 2.992366052378079,
+        "avalanche_share": 0.5600432688173864
+      }
+    },
+    "v2c_vram": {
+      "bpc": 3.4778,
+      "ppl": 11.14,
+      "stats": {
+        "near_objects_frac": 0.0003214003229027474,
+        "detail_volume": 0.2846237224868581,
+        "loaded_volume": 0.37404575654725986,
+        "mean_dist": 0.9576253340214114,
+        "mean_vectors_per_obj": 2.992366052378079,
+        "avalanche_share": 0.5600432688173864
+      }
+    }
+  },
+  "sample": "The history of science is al my ater the sha the penitith anve ss on te wal s ind � Thre antured of dealgelvemed Sas"
+}
