@@ -1,0 +1,16 @@
+{
+  "distractor_steps_passed": 10000,
+  "kv_cache_bytes": 0,
+  "room_crystals_count": 32,
+  "room_memory_bytes_fixed": 16384,
+  "false_recalls_rate_on_noise_pct": 0.0,
+  "accuracy_without_external_room_pct": 4.0,
+  "accuracy_with_external_3d_room_pct": 100.0,
+  "recalled_sequences_after_10000_steps": [
+    "ALPHA->OMEGA",
+    "SIGMA->DELTA",
+    "QUARK->GLUON",
+    "TESLA->GAUSS",
+    "LUMEN->NANIT"
+  ]
+}
