@@ -1,0 +1,32 @@
+{
+  "run_id": "v13-vulkan-nanite-two-sided-cut-deformable-lod",
+  "task": "Task2_N1_to_N13_Vulkan_MatrixFree_TwoSided_Haar_Cut",
+  "changed_exactly_one_thing": true,
+  "gpu_device": "AMD Radeon Pro 5500M",
+  "graphics_api": "Vulkan 1.2 (SPIR-V Compute + 3D Volume Texture TMU + Mip-map LOD + Spatial Hash Grid)",
+  "matrix_multiplications_count": 0,
+  "config": {"D": 64, "N": 256, "grid_voxels": 512, "mip_levels": 4, "gate": "snell_fresnel_emergent", "alpha_exp": 0.6667},
+  "units": {"granularity": "byte_collider_in_3d_room", "vocab": 256, "oov_rate": 0.0},
+  "budget": {"train_steps": 2400, "bytes_seen": 153600},
+  "validation": {
+    "n_bytes": 250240,
+    "BPC_mean": 3.6560,
+    "BPC_std": 2.1611,
+    "SE": 0.00432,
+    "train_EMA50_final": 3.5743
+  },
+  "cost": {
+    "dense_reference_bytes_per_token": 65536,
+    "bytes_read_per_token": 16536.7,
+    "vram_bandwidth_savings_pct": 74.77,
+    "spatial_culling_pct": 71.49,
+    "env_3d_texture_state_KB": 8.00,
+    "wall_ms_per_step_gpu": 3.661,
+    "train_steps_per_sec": 273.1,
+    "render_fps": 21.3
+  },
+  "physics_telemetry": {
+    "mean_snell_fresnel_transmission_T": 0.7348,
+    "mean_snell_fresnel_reflection_R": 0.2652
+  }
+}

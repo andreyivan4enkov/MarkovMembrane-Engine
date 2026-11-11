@@ -1,0 +1,13 @@
+{
+  "gpu_name": "AMD Radeon Pro 5500M",
+  "metal_vrr_supported": true,
+  "screen_size": [512, 512],
+  "physical_size": [352, 352],
+  "physical_granularity": [32, 32],
+  "full_rate_fragment_calls": 262144,
+  "vrr_physical_fragment_calls": 123904,
+  "metal_vrr_fragment_calls_saved": 138240,
+  "metal_vrr_savings_pct": 52.73,
+  "intermediate_texture_bytes_full": 4194304,
+  "intermediate_texture_bytes_vrr": 1982464
+}

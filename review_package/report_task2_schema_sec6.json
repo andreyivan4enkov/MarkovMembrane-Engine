@@ -1,0 +1,54 @@
+{
+  "prerequisites_T1_T5_closed": true,
+  "lod_mechanism": {
+    "error_metric": "haar_tail_energy",
+    "monotonic_violations": 0,
+    "levels_active_per_node_hist": {"0": 0, "1": 24033792, ">1": 0},
+    "tau_value": 0.1500,
+    "tau_derived_from": "SE(BPC)",
+    "tau_sweep_curve": "review_package/tau_sweep_curve_N3.csv",
+    "cut_rule": "two_sided",
+    "decision_granularity": "group",
+    "far_field": "monopole_haar0",
+    "hill_n_learned": {"mean": 2.2603, "p10": 1.0000, "p90": 6.0000}
+  },
+  "cost_measured": {
+    "MAC_per_step": 10203133,
+    "MAC_dense_reference_before_N6": 13418496,
+    "MAC_reduction_factor": 1.32,
+    "MAC_measurement_method": "counter",
+    "bytes_read_per_token": 37206,
+    "mean_m": 48.45,
+    "cascade_neighbor_list": true,
+    "neighbor_list_verified_complete": true,
+    "metal_vrr_supported": true,
+    "metal_vrr_fragment_calls_saved": 138240
+  },
+  "streaming": {
+    "two_lists": true,
+    "eviction": "error_priority",
+    "transition_BPC_dip": 0.1033,
+    "touched_nodes_frac": 0.9277
+  },
+  "deformation": {
+    "approach": "tracked",
+    "error_guarantee_holds": true,
+    "worst_case_MAC_per_step": 13127160,
+    "tracked_MAC_per_step": 10657790
+  },
+  "ablations_new": {
+    "a9_one_sided_delta_BPC": 0.4293,
+    "a10_prefix_delta_BPC": 0.0981
+  },
+  "gates": {
+    "G-N1": "PASSED (0 monotonic violations, 100% nodes have exactly 1 active cut level, tau* derived from SE(BPC), far field uses Haar monopole c_0)",
+    "G-N2": "PASSED (MAC_per_step and bytes_read_per_token drop by 1.32x with |dBPC| <= SE(BPC))",
+    "G-N3": "PARTIAL (N11 passed with flip_rate=0.4448; N10 rho_membrane=0.4813 beats random=-0.0006 by >10 SE, but remains below full column-norm heuristic=0.6215)",
+    "G-N4": "PASSED (both worst_case and tracked deformation margins hold error guarantee >= 99.9%; tracked saves 18.8% MAC vs worst_case)"
+  },
+  "negative_results": [
+    "N10 (Фальсификация семантического прожектора): После перевода энергии в базис Хаара ранговая корреляция Спирмена между глубиной раскрытия узла m*(j) и оракульной важностью выросла до 0.4813 (против -0.0006 у случайного выбора), но все еще уступает прямой эвристике нормы произведения |<x, w_in>|*||w_out|| (0.6215). В соответствии с §7 запрет на словосочетание 'семантический LOD' сохраняется в силе.",
+    "a9 (Двойной счет в одностороннем правиле): При отключении условия на родителя (E_parent > tau) в одностороннем правиле одновременно открываются несколько иерархических уровней одного узла, что раздувает ошибку после коррекции err_after и ухудшает BPC на +0.4293.",
+    "a10 (Наивный префикс вместо монополя Барнса-Хата): Замена нулевого коэффициента Хаара c_0 на первые координаты поверхностного вектора при усечении до 1/4 ухудшает BPC на всех 5 сидах в среднем на +0.0981 BPC."
+  ]
+}

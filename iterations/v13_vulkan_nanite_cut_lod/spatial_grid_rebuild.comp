@@ -1,0 +1,61 @@
+#version 450
+
+/* =====================================================================================
+ * ПЕРЕСБОРКА ПРОСТРАНСТВЕННОЙ СЕТКИ (3D SPATIAL HASH GRID 8x8x8) НА VULKAN
+ * Раскладывает 256 подвижных 3D-коллайдеров по 512 вокселям [-2, 2]^3
+ * для мгновенного Broad-Phase Culling без единого матричного умножения.
+ * ===================================================================================== */
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#define GRID_SIDE 8
+#define GRID_CELLS 512
+#define N_OBJECTS 256
+
+layout(std430, set = 0, binding = 4) buffer SpatialGridBuf {
+    uvec4 cell_meta[GRID_CELLS];
+    uvec4 cell_extra[GRID_CELLS];
+} b_grid;
+
+layout(std430, set = 0, binding = 5) readonly buffer ObjectColliderBuf {
+    vec4 obj_pos_rad[N_OBJECTS];
+    vec4 obj_impedance[N_OBJECTS];
+    vec4 obj_rgbl_filter[N_OBJECTS];
+    vec4 obj_mip0_features[N_OBJECTS * 16];
+    vec4 obj_mip1_features[N_OBJECTS * 4];
+    vec4 obj_mip2_features[N_OBJECTS];
+    vec4 obj_emit_fibers[N_OBJECTS * 16];
+} b_objects;
+
+ivec3 world_to_voxel(vec3 r) {
+    vec3 norm = clamp((r + vec3(2.0)) * 0.25, vec3(0.0), vec3(0.999));
+    return ivec3(norm * float(GRID_SIDE));
+}
+
+void main() {
+    uint cid = gl_GlobalInvocationID.x;
+    if (cid >= GRID_CELLS) return;
+
+    int cz = int(cid / 64u);
+    int cy = int((cid / 8u) % 8u);
+    int cx = int(cid % 8u);
+    ivec3 my_vox = ivec3(cx, cy, cz);
+
+    uint found[7] = uint[7](0u, 0u, 0u, 0u, 0u, 0u, 0u);
+    uint cnt = 0u;
+
+    for (uint j = 0; j < N_OBJECTS; ++j) {
+        vec3 r_j = b_objects.obj_pos_rad[j].xyz;
+        ivec3 v_j = world_to_voxel(r_j);
+        /* Если объект лежит в этом вокселе или касается его границ радиусом */
+        if (all(lessThanEqual(abs(v_j - my_vox), ivec3(1)))) {
+            if (cnt < 7u) {
+                found[cnt] = j;
+            }
+            cnt++;
+        }
+    }
+
+    b_grid.cell_meta[cid] = uvec4(min(cnt, 7u), found[0], found[1], found[2]);
+    b_grid.cell_extra[cid] = uvec4(found[3], found[4], found[5], found[6]);
+}
