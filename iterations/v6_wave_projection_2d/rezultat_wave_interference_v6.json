@@ -1,0 +1,75 @@
+{
+  "scaling_benchmark": [
+    {
+      "screen": "8x8",
+      "d_model": 64,
+      "n_objects": 64,
+      "classic_flops": 6291456,
+      "wave_flops": 114620,
+      "flops_speedup_x": 54.9,
+      "classic_ms": 19.86,
+      "wave_ms": 11.84,
+      "cpu_time_speedup_x": 1.68,
+      "active_objects_pct": 41.6
+    },
+    {
+      "screen": "16x16",
+      "d_model": 256,
+      "n_objects": 256,
+      "classic_flops": 100663296,
+      "wave_flops": 490328,
+      "flops_speedup_x": 205.3,
+      "classic_ms": 2.51,
+      "wave_ms": 1.46,
+      "cpu_time_speedup_x": 1.72,
+      "active_objects_pct": 45.7
+    },
+    {
+      "screen": "32x32",
+      "d_model": 1024,
+      "n_objects": 1024,
+      "classic_flops": 1610612736,
+      "wave_flops": 1908464,
+      "flops_speedup_x": 843.9,
+      "classic_ms": 11.31,
+      "wave_ms": 3.76,
+      "cpu_time_speedup_x": 3.01,
+      "active_objects_pct": 44.0
+    },
+    {
+      "screen": "64x64",
+      "d_model": 4096,
+      "n_objects": 4096,
+      "classic_flops": 25769803776,
+      "wave_flops": 7553432,
+      "flops_speedup_x": 3411.7,
+      "classic_ms": 142.44,
+      "wave_ms": 14.54,
+      "cpu_time_speedup_x": 9.8,
+      "active_objects_pct": 43.4
+    }
+  ],
+  "params": 23875,
+  "validation": {
+    "no_depth_phase": {
+      "bpc": 3.5661,
+      "ppl": 11.84,
+      "stats": {
+        "active_objects_frac": 0.3041435917721519,
+        "err_before": 0.8631230517750299,
+        "err_after": 0.8462285278600794,
+        "free_energy": 0.36231538841996014
+      }
+    },
+    "wave_depth_interference": {
+      "bpc": 3.5565,
+      "ppl": 11.77,
+      "stats": {
+        "active_objects_frac": 0.2862363404865506,
+        "err_before": 0.876283561374662,
+        "err_after": 0.8451776576075184,
+        "free_energy": 0.3639287903339048
+      }
+    }
+  }
+}
