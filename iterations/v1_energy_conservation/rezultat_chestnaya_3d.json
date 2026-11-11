@@ -1,0 +1,173 @@
+{
+  "params": {
+    "classic": 108288,
+    "spatial": 84117
+  },
+  "grad_profile_before": {
+    "grad_by_group_from_point_to_fine": [
+      0.001703,
+      0.000515,
+      0.000324,
+      0.000126,
+      6.9e-05,
+      4.7e-05,
+      1.8e-05,
+      2.2e-05
+    ],
+    "pos_3d_grad_mean": 0.000503,
+    "initial_emergent_stats": {
+      "near_objects_frac": 0.000547055858381403,
+      "detail_volume": 0.0340211254854997,
+      "loaded_volume": 0.15476848185062408,
+      "mean_dist": 2.610072612762451
+    }
+  },
+  "grad_profile_after": {
+    "grad_by_group_from_point_to_fine": [
+      0.000801,
+      0.000861,
+      0.00061,
+      0.000403,
+      0.000551,
+      0.000352,
+      0.000257,
+      0.000273
+    ],
+    "pos_3d_grad_mean": 0.000826,
+    "initial_emergent_stats": {
+      "near_objects_frac": 0.4785382350285848,
+      "detail_volume": 0.7893227736155193,
+      "loaded_volume": 0.8156574368476868,
+      "mean_dist": 2.365102847417196
+    }
+  },
+  "history": [
+    {
+      "step": 1,
+      "classic_bpc": 129.0888,
+      "spatial_bpc": 135.8042,
+      "near_objects_frac": 0.0004,
+      "detail_volume": 0.0343,
+      "loaded_volume": 0.155,
+      "mean_dist": 2.6129
+    },
+    {
+      "step": 50,
+      "classic_bpc": 5.4558,
+      "spatial_bpc": 38.0986,
+      "near_objects_frac": 0.0586,
+      "detail_volume": 0.3592,
+      "loaded_volume": 0.4393,
+      "mean_dist": 2.5159
+    },
+    {
+      "step": 100,
+      "classic_bpc": 3.9606,
+      "spatial_bpc": 6.272,
+      "near_objects_frac": 0.2668,
+      "detail_volume": 0.6474,
+      "loaded_volume": 0.6915,
+      "mean_dist": 2.3957
+    },
+    {
+      "step": 150,
+      "classic_bpc": 3.4736,
+      "spatial_bpc": 4.0564,
+      "near_objects_frac": 0.3794,
+      "detail_volume": 0.7341,
+      "loaded_volume": 0.7673,
+      "mean_dist": 2.3469
+    },
+    {
+      "step": 200,
+      "classic_bpc": 3.4333,
+      "spatial_bpc": 3.7098,
+      "near_objects_frac": 0.4239,
+      "detail_volume": 0.7563,
+      "loaded_volume": 0.7867,
+      "mean_dist": 2.3345
+    },
+    {
+      "step": 250,
+      "classic_bpc": 3.3237,
+      "spatial_bpc": 3.4557,
+      "near_objects_frac": 0.451,
+      "detail_volume": 0.7758,
+      "loaded_volume": 0.8038,
+      "mean_dist": 2.3327
+    },
+    {
+      "step": 300,
+      "classic_bpc": 3.2517,
+      "spatial_bpc": 3.463,
+      "near_objects_frac": 0.4672,
+      "detail_volume": 0.7837,
+      "loaded_volume": 0.8108,
+      "mean_dist": 2.3347
+    },
+    {
+      "step": 350,
+      "classic_bpc": 3.2533,
+      "spatial_bpc": 3.4793,
+      "near_objects_frac": 0.4747,
+      "detail_volume": 0.7905,
+      "loaded_volume": 0.8167,
+      "mean_dist": 2.3526
+    },
+    {
+      "step": 400,
+      "classic_bpc": 3.0563,
+      "spatial_bpc": 3.2399,
+      "near_objects_frac": 0.4923,
+      "detail_volume": 0.799,
+      "loaded_volume": 0.8241,
+      "mean_dist": 2.3736
+    }
+  ],
+  "validation": {
+    "classic_full": {
+      "bpc": 3.1874,
+      "ppl": 9.11,
+      "stats": {
+        "near_objects_frac": 1.0,
+        "detail_volume": 1.0,
+        "loaded_volume": 1.0,
+        "mean_dist": 0.0
+      }
+    },
+    "classic_vram_streaming": {
+      "bpc": 3.713,
+      "ppl": 13.11,
+      "stats": {
+        "near_objects_frac": 0.30000000000000043,
+        "detail_volume": 0.30000000000000043,
+        "loaded_volume": 0.3875074752523929,
+        "mean_dist": 0.0
+      }
+    },
+    "spatial_native": {
+      "bpc": 3.3282,
+      "ppl": 10.04,
+      "stats": {
+        "near_objects_frac": 0.4906812210877737,
+        "detail_volume": 0.7987028098810575,
+        "loaded_volume": 0.823864958457303,
+        "mean_dist": 2.37759568319039
+      }
+    },
+    "spatial_vram_streaming": {
+      "bpc": 3.8211,
+      "ppl": 14.13,
+      "stats": {
+        "near_objects_frac": 0.10584280157328156,
+        "detail_volume": 0.4733959806116321,
+        "loaded_volume": 0.5392214833181115,
+        "mean_dist": 2.398540689975401
+      }
+    }
+  },
+  "samples": {
+    "classic": "The history of science is a and and com ds woth hounied sed Noces on the for hild h more and was fic , agnevered the",
+    "spatial_streaming": "The history of science is , and featerands wit , 1@ 7 ( singh , sho th 1 forshili O Threland 1 der fond N land he as"
+  }
+}
