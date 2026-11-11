@@ -1,0 +1,144 @@
+{
+  "cross_lingual_isomorphism": {
+    "total_svo_combinations": 792,
+    "internal_distance_isomorphism_correlation": 0.9985,
+    "p_at_1_before_angle_rotation_pct": 0.0,
+    "p_at_1_after_procrustes_rotation_pct": 98.65,
+    "mean_cosine_after_rotation": 0.9473
+  },
+  "params": 50793,
+  "history": [
+    {
+      "step": 1,
+      "bpc": 9.2537,
+      "active_coords_frac": 0.1467,
+      "touched_nodes_frac": 0.4261,
+      "avg_cascade_waves": 3.0156,
+      "holographic_area": 2.2082,
+      "avg_luminance": 1.1768,
+      "modulator_rotation_rad": 0.0,
+      "err_before": 1.0065,
+      "err_after": 1.0116,
+      "free_energy": 0.512
+    },
+    {
+      "step": 50,
+      "bpc": 4.2624,
+      "active_coords_frac": 0.1389,
+      "touched_nodes_frac": 0.3988,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.227,
+      "avg_luminance": 1.1685,
+      "modulator_rotation_rad": 0.2452,
+      "err_before": 0.9787,
+      "err_after": 0.9861,
+      "free_energy": 0.4865
+    },
+    {
+      "step": 100,
+      "bpc": 3.8814,
+      "active_coords_frac": 0.1444,
+      "touched_nodes_frac": 0.415,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.2168,
+      "avg_luminance": 1.1653,
+      "modulator_rotation_rad": 0.2546,
+      "err_before": 0.96,
+      "err_after": 0.9665,
+      "free_energy": 0.4672
+    },
+    {
+      "step": 150,
+      "bpc": 3.836,
+      "active_coords_frac": 0.1489,
+      "touched_nodes_frac": 0.4225,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.2135,
+      "avg_luminance": 1.1623,
+      "modulator_rotation_rad": 0.2885,
+      "err_before": 0.9417,
+      "err_after": 0.9408,
+      "free_energy": 0.4428
+    },
+    {
+      "step": 200,
+      "bpc": 3.4974,
+      "active_coords_frac": 0.1501,
+      "touched_nodes_frac": 0.4285,
+      "avg_cascade_waves": 2.9844,
+      "holographic_area": 2.1905,
+      "avg_luminance": 1.1586,
+      "modulator_rotation_rad": 0.2946,
+      "err_before": 0.9207,
+      "err_after": 0.9126,
+      "free_energy": 0.4166
+    },
+    {
+      "step": 250,
+      "bpc": 3.4573,
+      "active_coords_frac": 0.1539,
+      "touched_nodes_frac": 0.4335,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.204,
+      "avg_luminance": 1.1579,
+      "modulator_rotation_rad": 0.2805,
+      "err_before": 0.9131,
+      "err_after": 0.8912,
+      "free_energy": 0.3973
+    },
+    {
+      "step": 300,
+      "bpc": 3.2763,
+      "active_coords_frac": 0.1545,
+      "touched_nodes_frac": 0.4345,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.1777,
+      "avg_luminance": 1.1547,
+      "modulator_rotation_rad": 0.2833,
+      "err_before": 0.8957,
+      "err_after": 0.8632,
+      "free_energy": 0.3728
+    },
+    {
+      "step": 350,
+      "bpc": 3.415,
+      "active_coords_frac": 0.1559,
+      "touched_nodes_frac": 0.4393,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.1633,
+      "avg_luminance": 1.1529,
+      "modulator_rotation_rad": 0.2879,
+      "err_before": 0.8869,
+      "err_after": 0.8495,
+      "free_energy": 0.3612
+    },
+    {
+      "step": 400,
+      "bpc": 3.1321,
+      "active_coords_frac": 0.1576,
+      "touched_nodes_frac": 0.4444,
+      "avg_cascade_waves": 3.0156,
+      "holographic_area": 2.1723,
+      "avg_luminance": 1.15,
+      "modulator_rotation_rad": 0.2474,
+      "err_before": 0.8707,
+      "err_after": 0.8204,
+      "free_energy": 0.3367
+    }
+  ],
+  "validation": {
+    "bpc": 3.2287,
+    "ppl": 9.37,
+    "stats": {
+      "active_coords_frac": 0.15684650922223595,
+      "touched_nodes_frac": 0.44235396942807526,
+      "avg_cascade_waves": 2.561511075949367,
+      "holographic_area": 2.1598613597216865,
+      "avg_luminance": 1.1503007235359164,
+      "modulator_rotation_rad": 0.2751365286173576,
+      "err_before": 0.8647316061078182,
+      "err_after": 0.8161676257047095,
+      "free_energy": 0.3376939126962348
+    }
+  }
+}
