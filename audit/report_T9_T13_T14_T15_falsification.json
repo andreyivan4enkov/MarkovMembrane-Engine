@@ -1,0 +1,88 @@
+{
+  "run_id": "falsification-and-capacity-T9-T10-T13-T14-T15-A9-a8",
+  "task": "T9+T10+T13+T14+T15+a8+A9",
+  "changed_exactly_one_thing": true,
+  "T9_T10_T14_T15_measured_on_1000_validation_steps": {
+    "T9_rho_membrane": 0.0333,
+    "T9_rho_membrane_SE": 0.0028,
+    "T9_rho_heuristic": 0.9895,
+    "T9_rho_random": 0.0013,
+    "T9_recall16_membrane": 0.1639,
+    "T9_recall16_heuristic": 0.8163,
+    "T9_recall16_random": 0.1686,
+    "T9_passed_vs_random": true,
+    "T9_passed_vs_heuristic": false,
+    "T10_pairwise_flip_rate_v8": 0.1678,
+    "T10_frac_bits_flipping_v8": 0.6759,
+    "T10_pairwise_flip_rate_vulkan_v12": 0.0057,
+    "T14_MI_unconditional_bits": 15.2416,
+    "T14_CMI_conditional_bits": 12.8365,
+    "T14_CMI_ratio": 0.8422,
+    "T14_is_strict_markov_blanket": false,
+    "T15_water_filling_spearman": 0.037
+  },
+  "T12_a8_wave_gradient_cosine": {
+    "cos_by_D": {
+      "64": 0.0881,
+      "256": 0.0837,
+      "1024": 0.0758,
+      "4096": 0.1023
+    },
+    "mean_cos": 0.0875,
+    "passed_0_9_threshold": false
+  },
+  "T13_memory_capacity_curve": {
+    "n_slots": 32,
+    "d_model": 64,
+    "fixed_memory_bytes": 8192,
+    "curve": {
+      "5": {
+        "recall_pct": 100.0,
+        "items_per_slot": 0.16,
+        "membrane_state_bytes": 8192,
+        "kv_cache_equivalent_bytes": 1280
+      },
+      "50": {
+        "recall_pct": 52.0,
+        "items_per_slot": 1.56,
+        "membrane_state_bytes": 8192,
+        "kv_cache_equivalent_bytes": 12800
+      },
+      "500": {
+        "recall_pct": 8.4,
+        "items_per_slot": 15.62,
+        "membrane_state_bytes": 8192,
+        "kv_cache_equivalent_bytes": 128000
+      },
+      "5000": {
+        "recall_pct": 0.95,
+        "items_per_slot": 156.25,
+        "membrane_state_bytes": 8192,
+        "kv_cache_equivalent_bytes": 1280000
+      },
+      "50000": {
+        "recall_pct": 0.55,
+        "items_per_slot": 1562.5,
+        "membrane_state_bytes": 8192,
+        "kv_cache_equivalent_bytes": 12800000
+      }
+    },
+    "capacity_at_90pct_recall_items": 5
+  },
+  "A9_heldout_procrustes_test": {
+    "n_train_pairs": 40,
+    "n_heldout_test_pairs": 20,
+    "train_in_sample_cos": 0.8449,
+    "train_in_sample_P_at_1_pct": 100.0,
+    "heldout_test_cos": 0.0141,
+    "heldout_test_P_at_1_pct": 0.0,
+    "explanation": "В v10 матрица Прокруста оценивалась и проверялась на одних и тех же сконструированных триадах. На непересекающемся held-out сплите (при размерности D=64 и 40 опорных парах) косинус падает с 0.8449 до 0.0141, а честный P@1 на held-out составляет 0.0%."
+  },
+  "negative_results": [
+    "T9 (Фальсификация семантического LOD): Корреляция Спирмена между открытием узлов и оракульной важностью составляет 0.0333 ± 0.0028 (выше случайного 0.0013 на >11 SE, но ниже простой эвристики 0.9895). По правилу §6 T9 термин семантический LOD снят.",
+    "T14 (Проверка имени Марковское одеяло): Отношение условной взаимной информации к безусловной I(mu; eta | b) / I(mu; eta) = 0.8422 (не близко к нулю). Поверхность является 2D-интерфейсом взаимодействия внутреннего и внешнего состояний, а не строгим марковским одеялом в смысле условной независимости.",
+    "T12 (a8 — волновой градиент v6): Средний косинус с точным градиентом по D=64..4096 равен 0.0875 (< 0.9). Это локальное смещенное правило обновления с интерференцией соседей, а не точный backprop.",
+    "T13 (Емкость фиксированной памяти v9): На 5 элементах recall = 100.0%, на 50 элементах = 52.0%, на 500 элементах = 8.4%. Точка сохранения recall >= 90% при 32 узлах (8 КБ) составляет 5 элементов.",
+    "В v10 матрица Прокруста оценивалась и проверялась на одних и тех же сконструированных триадах. На непересекающемся held-out сплите (при размерности D=64 и 40 опорных парах) косинус падает с 0.8449 до 0.0141, а честный P@1 на held-out составляет 0.0%."
+  ]
+}

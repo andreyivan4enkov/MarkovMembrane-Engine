@@ -1,0 +1,123 @@
+{
+  "run_id": "v8-audit-T1-T2-T4-A5",
+  "task": "T1+T2+T4+A5",
+  "changed_exactly_one_thing": true,
+  "config": {
+    "D": 64,
+    "N": 96,
+    "chunk_len": 64,
+    "gate": "michaelis_menten",
+    "hill_n": 1.0
+  },
+  "units": {
+    "granularity": "byte",
+    "vocab": 256,
+    "oov_rate": 0.0
+  },
+  "budget": {
+    "epochs": 0.2726,
+    "bytes_seen": 409600
+  },
+  "seeds": [
+    42
+  ],
+  "section_2_verified_facts": {
+    "params_exact": 46179,
+    "param_KB_fp32": 180.39,
+    "old_validation_bytes": 5056,
+    "old_validation_share_pct": 2.02,
+    "train_budget_bytes_400steps": 409600,
+    "train_budget_epoch_pct": 27.26,
+    "MAC_per_step_v8": 13680640,
+    "MAC_dense_64x64": 65536,
+    "MAC_overhead_ratio": 208.8,
+    "state_KB_fp32": 388.0,
+    "state_to_params_ratio": 2.15,
+    "collision_graph_pair_density_pct": 9.67,
+    "collision_graph_avg_neighbors": 9.19
+  },
+  "T2_ngram_floor": {
+    "1": {
+      "BPC": 4.6048,
+      "SE": 0.0037,
+      "PPL": 24.33,
+      "n_bytes": 250352
+    },
+    "2": {
+      "BPC": 3.561,
+      "SE": 0.00381,
+      "PPL": 11.8,
+      "n_bytes": 250352
+    },
+    "3": {
+      "BPC": 3.0154,
+      "SE": 0.0044,
+      "PPL": 8.09,
+      "n_bytes": 250352
+    },
+    "4": {
+      "BPC": 2.584,
+      "SE": 0.00516,
+      "PPL": 6.0,
+      "n_bytes": 250352
+    },
+    "5": {
+      "BPC": 2.3806,
+      "SE": 0.00594,
+      "PPL": 5.21,
+      "n_bytes": 250352
+    }
+  },
+  "A5_v11_word_vocab_audit": {
+    "total_bytes": 1502836,
+    "total_word_tokens": 241067,
+    "unique_word_types": 21864,
+    "vocab_size": 2048,
+    "coverage_pct": 76.34,
+    "oov_rate_pct": 23.66,
+    "avg_bytes_per_word_token": 6.234,
+    "v11_reported_loss_nats": 5.202,
+    "v11_reported_bits_per_word": 7.5049,
+    "explanation": "При словаре 2048 из 21864 уникальных слов доля OOV составляет 23.66%. Все 57026 OOV-слов сливаются в единый токен <unk> (ID=0), что искусственно занижает энтропию предсказания слов и делает словесную перплексию 181.7 несопоставимой с честным byte-level (OOV=0)."
+  },
+  "validation": {
+    "n_bytes": 249856,
+    "v8_BPC_full_250k": 3.2966,
+    "v8_SE_full_250k": 0.00466,
+    "v8_BPC_old_5056_slice": 3.2693,
+    "v8_SE_old_5056_slice": 0.03239,
+    "classic_matched_46344_BPC_full_250k": 3.3387,
+    "classic_matched_46344_SE_full_250k": 0.00464,
+    "paired_diff_v8_minus_classic_BPC": -0.0421,
+    "paired_diff_SE": 0.00176,
+    "paired_z_score": -23.88,
+    "train_EMA50_final_v8": 3.222,
+    "train_EMA50_final_classic_matched": 3.246
+  },
+  "cost": {
+    "MAC_per_step": 13680640,
+    "MAC_dense_baseline": 65536,
+    "bytes_read_per_token": 184716,
+    "state_KB_fp32": 388.0
+  },
+  "sparsity": {
+    "active_coords_frac": 0.1573,
+    "touched_nodes_frac": 0.4341
+  },
+  "baselines_present": [
+    "ngram1-5",
+    "classic_matched_46344"
+  ],
+  "gates": {
+    "G-I": "FAILED_AT_0.038_EPOCHS (requires >=5 epochs and beating n-gram floor 2.67 BPC)",
+    "G-II": "pending",
+    "G-III": "pending"
+  },
+  "acceptance_criterion_written_before_run": "T1: validation.n_bytes >= 200000, SE(BPC) computed, per-byte losses saved to .npy. T2: table order 1..5 -> BPC computed; if best n-gram <= 3.19, record that v1-v10 at 3.8% epoch are worse than frequency table.",
+  "acceptance_passed": true,
+  "negative_results": [
+    "T2 (Провал порога n-gram пола): Счетная 5-gram без обучаемых параметров дает 2.3806 BPC (<= 3.19 BPC) на полном валидационном сплите (250 352 байта). Все модели серии v1-v10 на бюджете 3.8% эпохи (3.20-3.80 BPC) уступают счетной таблице частот.",
+    "A1 + C2 + C6: В текущей реализации v8 все тензоры плотные, усечение полигонального дерева отсутствует, а реальное число MAC на шаг составляет 13,680,640 против 65,536 у плотного слоя 64x64 (в 208.8x дороже).",
+    "При словаре 2048 из 21864 уникальных слов доля OOV составляет 23.66%. Все 57026 OOV-слов сливаются в единый токен <unk> (ID=0), что искусственно занижает энтропию предсказания слов и делает словесную перплексию 181.7 несопоставимой с честным byte-level (OOV=0)."
+  ]
+}

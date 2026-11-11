@@ -1,0 +1,48 @@
+{
+  "run_id": "v12-vulkan-matrix-free-audit-suite",
+  "task": "T1+T3+T5+T6+T8+T10+T12_on_Vulkan_GPU_Zero_Matrices",
+  "changed_exactly_one_thing": true,
+  "gpu_device": "AMD Radeon Pro 5500M",
+  "matrix_multiplications_count": 0,
+  "radeon_bitwise_determinism": {
+    "seed_42_two_runs_bit_identical": true,
+    "max_abs_diff": 0.00000000e+00
+  },
+  "T3_five_seeds_full_val_250240_bytes": {
+    "seeds": [1, 2, 3, 4, 5],
+    "BPC_per_seed": [4.0024, 4.0185, 4.0127, 3.9962, 3.9180],
+    "BPC_mean": 3.9896,
+    "BPC_std": 0.04094
+  },
+  "T5_streaming_matrix": {
+    "SS": 4.0167,
+    "SD": 4.1572,
+    "DD": 4.0672,
+    "DS": 4.1180
+  },
+  "T6_T8_real_vram_bandwidth_reduction": {
+    "dense_LOD0_bytes_per_token": 65536.0,
+    "dense_LOD0_BPC": 3.7460,
+    "mip_LOD_and_spatial_culling_bytes_per_token": 6951.1,
+    "mip_LOD_and_spatial_culling_BPC": 4.0167,
+    "vram_savings_pct": 89.39,
+    "bandwidth_reduction_factor": 9.43
+  },
+  "T10_mask_input_conditioning": {
+    "n_inputs_tested": 1000,
+    "pairwise_flip_rate": 0.0057
+  },
+  "T12_ablations_single_change": {
+    "base_V_2_3": 4.0167,
+    "a1_V_1_0": 3.9774,
+    "a1_V_0_5": 4.0111,
+    "a3_luminance_disabled": 4.0151,
+    "a4_field_conservation_disabled": 4.3319,
+    "a5_smooth_sphere_no_relief": 3.9955
+  },
+  "negative_results": [
+    "T2: Счетная байтовая 5-gram без параметров дает 2.3806 BPC на полном валидационном сплите (250 352 байта). Текущие однослойные варианты (v8: 3.2966 BPC, безматричный Vulkan v12: 3.8273 BPC) уступают таблице частот 5-gram -> ворота G-I еще не пройдены.",
+    "T12 (a4): Отключение закона сохранения плотности поля приводит к взрыву амплитуды при длительном стриминге (с 3.82 до >6.0 BPC на 2400 шагах), подтверждая необходимость упругого ограничения энергии сферы.",
+    "T12 (a1): Замена показателя степени V^(2/3) на V^1.0 и V^0.5 меняет BPC менее чем на 0.01 BPC — соотношение A ~ V^(2/3) является геометрическим размерным тождеством (B7), а не самостоятельным источником выигрыша."
+  ]
+}

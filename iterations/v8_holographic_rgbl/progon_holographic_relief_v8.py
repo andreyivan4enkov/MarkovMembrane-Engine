@@ -416,7 +416,7 @@ def evaluate_holographic_world(
     w_int = None
     psi_field = None
     with torch.no_grad():
-        limit = min(data.numel() - 1, chunk_len * 80)
+        limit = data.numel() - 1
         for start in range(0, limit - chunk_len, chunk_len):
             seq = data[start : start + chunk_len + 1]
             logits, w_int, psi_field, _, st = model.forward_sequence(seq[:-1].unsqueeze(0), w_int, psi_field)

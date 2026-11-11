@@ -1,0 +1,601 @@
+#version 450
+
+/* =====================================================================================
+ * MARKOVMEMBRANE ENGINE — ДЕТАЛЬНЫЙ ШЕЙДЕР 2D-ПРОЕКЦИИ 3D-КОМНАТЫ С ПЕРСПЕКТИВЫ (VULKAN GLSL 450)
+ * Автор концепции: Андрей Иванченков.
+ *
+ * ЖЁСТКИЙ ЗАПРЕТ ВЫПОЛНЕН:
+ * - 0 матриц (нет mat2/mat3/mat4, нет матричных умножений).
+ * - Вся 3D -> 2D перспектива строится через векторные произведения cross(), скалярные dot()
+ *   и перспективное деление (Perspective Divide: x_cam / z_cam, y_cam / z_cam).
+ *
+ * Что отрисовывает этот шейдер на каждом шаге обучения (1280x720 RGBA8):
+ * 1. СЛЕВА (760x720): Настоящая перспективная 2D-проекция 3D-комнаты [-2, 2]^3:
+ *    - 3D-каркас комнаты, координатные оси X (красная), Y (зелёная), Z (синяя) и воксельная сетка 8x8x8;
+ *    - Объёмное свечение 3D-текстуры полей среды Psi(x,y,z,t) (нагретые и намагниченные коридоры памяти);
+ *    - Полигональная 3D-оболочка Контекста (8x8 = 64 четырёхугольника / 128 треугольников) с горами и впадинами,
+ *      освещённая по реальным 3D-нормалям cross(edge_u, edge_v) в спектральных цветах RGBL;
+ *    - 256 3D-коллайдеров в комнате с цветовым кодированием уровня детализации:
+ *        * серые точки в тумане — отсечены Spatial Hash Grid (Broad-Phase Culling, 0 вычислений);
+ *        * синие сферы — дальняя зона LOD 2 (читается только 1 vec4 мип-силуэта);
+ *        * бирюзово-зелёные сферы — средняя зона LOD 1 (читаются 4 vec4);
+ *        * ярко-золотые и пурпурные сферы — ближняя зона LOD 0 (полные 64 грани) + 2D-кольцо пятна контакта;
+ *    - Лучи пробоя мембраны T(r) (зелёно-бирюзовые) и векторы упругого рикошета R(r) (огненно-оранжевые)
+ *      по обобщённому закону Снеллиуса–Френеля;
+ *    - 3D-шлейф траектории движения фокуса контекста r_c(t) за последние 128 шагов.
+ * 2. СПРАВА ВВЕРХУ (520x230):
+ *    - Детальная 2D-развёртка мембраны коллизии (u, v) 8x8 в каналах RGBL + векторы излома граней;
+ *    - Пирамида уровней детализации Mip-map LOD (LOD 0: 8x8 -> LOD 1: 4x4 -> LOD 2: 2x2).
+ * 3. СПРАВА В СЕРЕДИНЕ (520x210):
+ *    - Два ортогональных разреза 3D-комнаты (проекция XY сверху и проекция XZ сбоку) с картой плотности
+ *      3D-текстуры среды Psi(x,y,z,t) и положением активных коллайдеров.
+ * 4. СПРАВА ВНИЗУ (520x280):
+ *    - Живые графики всех шагов обучения (Loss bits, EMA(50), Spatial Culling %, Mip-LOD VRAM Savings %,
+ *      проницаемость Снеллиуса–Френеля T(r) vs отражение R(r)) и цифровая телеметрия на экране.
+ * ===================================================================================== */
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#define IMG_W 1280
+#define IMG_H 720
+#define SIDE 8
+#define N_SECTORS 64
+#define N_OBJECTS 256
+#define MAX_HISTORY 600
+
+layout(set = 0, binding = 0) uniform sampler3D u_envVolumeSampler;
+
+layout(std430, set = 0, binding = 5) readonly buffer ObjectColliderBuf {
+    vec4 obj_pos_rad[N_OBJECTS];
+    vec4 obj_impedance[N_OBJECTS];
+    vec4 obj_rgbl_filter[N_OBJECTS];
+    vec4 obj_mip0_features[N_OBJECTS * 16];
+    vec4 obj_mip1_features[N_OBJECTS * 4];
+    vec4 obj_mip2_features[N_OBJECTS];
+    vec4 obj_emit_fibers[N_OBJECTS * 16];
+} b_objects;
+
+layout(std430, set = 0, binding = 7) readonly buffer StepMetricsAndSnapBuf {
+    float step_loss_bits[64];
+    uint culled_objects_cnt[64];
+    uint active_lod_floats_read[64];
+    uint ricochet_events_cnt[64];
+    float trans_T_sum[64];
+    float holo_area_sum[64];
+
+    vec4 snap_surf_pos_r[N_SECTORS];
+    vec4 snap_surf_norm_area[N_SECTORS];
+    vec4 snap_surf_rgbl[N_SECTORS];
+    vec4 snap_obj_collision[N_OBJECTS];
+    vec4 snap_focus_rays[4];
+    vec4 snap_trail_pos[128];
+
+    float stream_probs[64 * N_OBJECTS];
+    vec4 stream_focus_pos[64];
+    vec4 stream_saved_sc[64 * 16];
+    vec4 stream_emit_grad[64 * 16];
+} b_metrics;
+
+/* Буфер истории всех шагов обучения для отрисовки детальных кривых */
+layout(std430, set = 0, binding = 8) readonly buffer HistoryPlotBuf {
+    vec4 hist_series[MAX_HISTORY]; /* .x = loss_bits, .y = ema50_bits, .z = vram_saved_frac, .w = trans_T */
+} b_history;
+
+/* Выходной буфер кадра RGBA8 (упакованный uint32 на пиксель) */
+layout(std430, set = 0, binding = 9) writeonly buffer FrameOutBuf {
+    uint pixels[];
+} b_frame;
+
+layout(push_constant) uniform RenderPushConsts {
+    uint frame_idx;
+    uint total_steps_done;
+    float cam_angle;
+    float cur_ema_bpc;
+    float cur_cull_pct;
+    float cur_vram_save_pct;
+} rpc;
+
+/* Перспективная проекция 3D-точки p_world на 2D-экран левой панели (760x720) БЕЗ МАТРИЦ */
+bool project_3d_to_2d(vec3 p_world, vec3 cam_pos, vec3 cam_fwd, vec3 cam_right, vec3 cam_up, out vec2 screen_xy, out float depth_z) {
+    vec3 rel = p_world - cam_pos;
+    depth_z = dot(rel, cam_fwd);
+    if (depth_z <= 0.15) {
+        screen_xy = vec2(-1000.0);
+        return false;
+    }
+    float x_cam = dot(rel, cam_right);
+    float y_cam = dot(rel, cam_up);
+    float focal = 560.0;
+    /* Perspective Divide (деление на глубину Z) */
+    screen_xy = vec2(380.0 + (x_cam / depth_z) * focal, 370.0 - (y_cam / depth_z) * focal);
+    return true;
+}
+
+/* Расстояние от 2D-пикселя p до отрезка [a, b] */
+float dist_to_segment(vec2 p, vec2 a, vec2 b) {
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    float h = clamp(dot(pa, ba) / (dot(ba, ba) + 1e-6), 0.0, 1.0);
+    return length(pa - ba * h);
+}
+
+/* Проверка принадлежности 2D-пикселя p треугольнику (a, b, c) через барицентрические координаты */
+bool point_in_triangle_2d(vec2 p, vec2 a, vec2 b, vec2 c, out vec3 bary) {
+    vec2 v0 = b - a;
+    vec2 v1 = c - a;
+    vec2 v2 = p - a;
+    float den = v0.x * v1.y - v1.x * v0.y;
+    if (abs(den) < 1e-5) {
+        bary = vec3(0.0);
+        return false;
+    }
+    float inv_den = 1.0 / den;
+    float v = (v2.x * v1.y - v1.x * v2.y) * inv_den;
+    float w = (v0.x * v2.y - v2.x * v0.y) * inv_den;
+    float u = 1.0 - v - w;
+    bary = vec3(u, v, w);
+    return (u >= -0.01 && v >= -0.01 && w >= -0.01);
+}
+
+/* Компактный растровый шрифт 3x5 для цифр 0..9, точки и знака % на графиках и индикаторах */
+float sample_digit_3x5(int digit, ivec2 lp) {
+    if (lp.x < 0 || lp.x >= 3 || lp.y < 0 || lp.y >= 5) return 0.0;
+    int masks[12] = int[12](
+        31599, /* 0 */
+        9362,  /* 1 */
+        29671, /* 2 */
+        29391, /* 3 */
+        23497, /* 4 */
+        31183, /* 5 */
+        31215, /* 6 */
+        29257, /* 7 */
+        31727, /* 8 */
+        31695, /* 9 */
+        2,     /* . (10) */
+        20757  /* % (11) */
+    );
+    int idx = clamp(digit, 0, 11);
+    int bit = (4 - lp.y) * 3 + (2 - lp.x);
+    return float((masks[idx] >> bit) & 1);
+}
+
+/* Отрисовка числа с фиксированной точкой (например 3.42) в заданной позиции экрана */
+float draw_float_val(ivec2 px, ivec2 orig, float val, int scale) {
+    float v = max(0.0, val);
+    int int_part = int(v);
+    int frac1 = int(v * 10.0) % 10;
+    int frac2 = int(v * 100.0) % 10;
+
+    int digits[4];
+    digits[0] = (int_part >= 10) ? ((int_part / 10) % 10) : (int_part % 10);
+    digits[1] = (int_part >= 10) ? (int_part % 10) : 10; /* точка если < 10 */
+    digits[2] = (int_part >= 10) ? 10 : frac1;
+    digits[3] = (int_part >= 10) ? frac1 : frac2;
+
+    for (int i = 0; i < 4; ++i) {
+        ivec2 rel = (px - orig - ivec2(i * 4 * scale, 0)) / scale;
+        if (sample_digit_3x5(digits[i], rel) > 0.5) return 1.0;
+    }
+    return 0.0;
+}
+
+void main() {
+    ivec2 px = ivec2(gl_GlobalInvocationID.xy);
+    if (px.x >= IMG_W || px.y >= IMG_H) return;
+
+    vec2 p = vec2(px);
+    vec3 col = vec3(0.035, 0.042, 0.062);
+
+    vec3 focus_pos = b_metrics.snap_focus_rays[0].xyz;
+    float cur_vol = b_metrics.snap_focus_rays[0].w;
+    vec3 focus_norm = b_metrics.snap_focus_rays[1].xyz;
+    float env_rho = b_metrics.snap_focus_rays[1].w;
+    vec3 v_inc = b_metrics.snap_focus_rays[2].xyz;
+    float env_temp = b_metrics.snap_focus_rays[2].w;
+    vec3 env_B = b_metrics.snap_focus_rays[3].xyz;
+    uint tgt_id = uint(b_metrics.snap_focus_rays[3].w) & 255u;
+
+    /* =========================================================================
+     * ПАНЕЛЬ 1 (СЛЕВА, X: 0..760, Y: 0..720):
+     * НАСТОЯЩАЯ ПЕРСПЕКТИВНАЯ 2D-ПРОЕКЦИЯ 3D-КОМНАТЫ [-2, 2]^3
+     * ========================================================================= */
+    if (px.x < 760) {
+        /* Плавный радиальный градиент глубокого космоса/сцены */
+        float rad_bg = length((p - vec2(380.0, 360.0)) / vec2(420.0, 380.0));
+        col = mix(vec3(0.055, 0.070, 0.105), vec3(0.018, 0.022, 0.035), clamp(rad_bg, 0.0, 1.0));
+
+        /* Положение камеры, облетающей 3D-комнату под углом с видом на центр и фокус */
+        float ang = rpc.cam_angle;
+        vec3 cam_pos = vec3(4.35 * cos(ang), 3.15 + 0.35 * sin(ang * 0.5), 4.35 * sin(ang));
+        vec3 cam_target = 0.25 * focus_pos;
+        vec3 cam_fwd = normalize(cam_target - cam_pos);
+        vec3 world_up = vec3(0.0, 1.0, 0.0);
+        vec3 cam_right = normalize(cross(cam_fwd, world_up));
+        vec3 cam_up = cross(cam_right, cam_fwd);
+
+        /* 1.1. Отрисовка 12 ребер куба 3D-комнаты [-2, 2]^3 и координатных осей X, Y, Z */
+        vec3 corners[8] = vec3[8](
+            vec3(-2.0, -2.0, -2.0), vec3( 2.0, -2.0, -2.0),
+            vec3( 2.0,  2.0, -2.0), vec3(-2.0,  2.0, -2.0),
+            vec3(-2.0, -2.0,  2.0), vec3( 2.0, -2.0,  2.0),
+            vec3( 2.0,  2.0,  2.0), vec3(-2.0,  2.0,  2.0)
+        );
+        vec2 sc_corners[8];
+        for (int i = 0; i < 8; ++i) {
+            float dz;
+            project_3d_to_2d(corners[i], cam_pos, cam_fwd, cam_right, cam_up, sc_corners[i], dz);
+        }
+        ivec2 edges[12] = ivec2[12](
+            ivec2(0,1), ivec2(1,2), ivec2(2,3), ivec2(3,0),
+            ivec2(4,5), ivec2(5,6), ivec2(6,7), ivec2(7,4),
+            ivec2(0,4), ivec2(1,5), ivec2(2,6), ivec2(3,7)
+        );
+        for (int e = 0; e < 12; ++e) {
+            float d_edge = dist_to_segment(p, sc_corners[edges[e].x], sc_corners[edges[e].y]);
+            if (d_edge < 1.6) {
+                col = mix(col, vec3(0.22, 0.30, 0.44), 1.0 - d_edge / 1.6);
+            }
+        }
+
+        /* Воксельная сетка на полу комнаты (Y = -2.0) для привязки перспективы */
+        for (int g = -3; g <= 3; ++g) {
+            float coord = float(g) * 0.5;
+            vec2 a1, b1, a2, b2;
+            float dz;
+            project_3d_to_2d(vec3(coord, -2.0, -2.0), cam_pos, cam_fwd, cam_right, cam_up, a1, dz);
+            project_3d_to_2d(vec3(coord, -2.0,  2.0), cam_pos, cam_fwd, cam_right, cam_up, b1, dz);
+            project_3d_to_2d(vec3(-2.0, -2.0, coord), cam_pos, cam_fwd, cam_right, cam_up, a2, dz);
+            project_3d_to_2d(vec3( 2.0, -2.0, coord), cam_pos, cam_fwd, cam_right, cam_up, b2, dz);
+            float dg = min(dist_to_segment(p, a1, b1), dist_to_segment(p, a2, b2));
+            if (dg < 1.2) {
+                col = mix(col, vec3(0.14, 0.20, 0.30), (1.0 - dg / 1.2) * 0.55);
+            }
+        }
+
+        /* Главные координатные оси X (красная), Y (зелёная), Z (синяя) из центра (0,0,0) */
+        vec2 o_sc, x_sc, y_sc, z_sc;
+        float dz0;
+        project_3d_to_2d(vec3(0.0), cam_pos, cam_fwd, cam_right, cam_up, o_sc, dz0);
+        project_3d_to_2d(vec3(2.25, 0.0, 0.0), cam_pos, cam_fwd, cam_right, cam_up, x_sc, dz0);
+        project_3d_to_2d(vec3(0.0, 2.25, 0.0), cam_pos, cam_fwd, cam_right, cam_up, y_sc, dz0);
+        project_3d_to_2d(vec3(0.0, 0.0, 2.25), cam_pos, cam_fwd, cam_right, cam_up, z_sc, dz0);
+        float dx_ax = dist_to_segment(p, o_sc, x_sc);
+        float dy_ax = dist_to_segment(p, o_sc, y_sc);
+        float dz_ax = dist_to_segment(p, o_sc, z_sc);
+        if (dx_ax < 2.2) col = mix(col, vec3(0.95, 0.28, 0.25), (1.0 - dx_ax / 2.2) * 0.85);
+        if (dy_ax < 2.2) col = mix(col, vec3(0.25, 0.92, 0.42), (1.0 - dy_ax / 2.2) * 0.85);
+        if (dz_ax < 2.2) col = mix(col, vec3(0.28, 0.62, 1.00), (1.0 - dz_ax / 2.2) * 0.85);
+
+        /* 1.2. Шлейф траектории движения фокуса контекста r_c(t) в 3D-комнате */
+        uint n_trail = min(rpc.frame_idx, 96u);
+        for (uint t_i = 1; t_i < n_trail; ++t_i) {
+            uint idx0 = (rpc.frame_idx - t_i) & 127u;
+            uint idx1 = (rpc.frame_idx - t_i - 1u) & 127u;
+            vec3 tp0 = b_metrics.snap_trail_pos[idx0].xyz;
+            vec3 tp1 = b_metrics.snap_trail_pos[idx1].xyz;
+            vec2 s0, s1;
+            float z0, z1;
+            if (project_3d_to_2d(tp0, cam_pos, cam_fwd, cam_right, cam_up, s0, z0) &&
+                project_3d_to_2d(tp1, cam_pos, cam_fwd, cam_right, cam_up, s1, z1)) {
+                float dt = dist_to_segment(p, s0, s1);
+                float fade = 1.0 - float(t_i) / float(n_trail);
+                if (dt < 2.4) {
+                    vec3 trail_col = mix(vec3(0.15, 0.75, 1.0), vec3(1.0, 0.85, 0.25), b_metrics.snap_trail_pos[idx0].w);
+                    col = mix(col, trail_col, (1.0 - dt / 2.4) * fade * 0.75);
+                }
+            }
+        }
+
+        /* 1.3. Растеризация с Z-буфером:
+         *      - 128 3D-треугольников рельефной полигональной оболочки Контекста (8x8 секторов)
+         *      - 256 3D-коллайдеров в комнате с их реальным LOD (Culled / LOD 2 / LOD 1 / LOD 0) */
+        float best_z = 1e9;
+        vec3 surf_shaded = col;
+        bool hit_surface = false;
+
+        /* Проецируем 64 вершины рельефной оболочки */
+        vec2 surf_sc[N_SECTORS];
+        float surf_z[N_SECTORS];
+        for (uint d = 0; d < N_SECTORS; ++d) {
+            project_3d_to_2d(b_metrics.snap_surf_pos_r[d].xyz, cam_pos, cam_fwd, cam_right, cam_up, surf_sc[d], surf_z[d]);
+        }
+
+        vec3 light_dir = normalize(vec3(0.6, 0.8, 0.5));
+        for (uint u = 0; u < SIDE - 1; ++u) {
+            for (uint v = 0; v < SIDE; ++v) {
+                uint vn = (v + 1) & (SIDE - 1);
+                uint i00 = u * SIDE + v;
+                uint i10 = (u + 1) * SIDE + v;
+                uint i01 = u * SIDE + vn;
+                uint i11 = (u + 1) * SIDE + vn;
+
+                vec3 bary;
+                /* Треугольник 1: (i00, i10, i11) */
+                if (point_in_triangle_2d(p, surf_sc[i00], surf_sc[i10], surf_sc[i11], bary)) {
+                    float z_tri = bary.x * surf_z[i00] + bary.y * surf_z[i10] + bary.z * surf_z[i11];
+                    if (z_tri > 0.2 && z_tri < best_z) {
+                        best_z = z_tri;
+                        hit_surface = true;
+                        vec4 rgbl = bary.x * b_metrics.snap_surf_rgbl[i00] + bary.y * b_metrics.snap_surf_rgbl[i10] + bary.z * b_metrics.snap_surf_rgbl[i11];
+                        vec3 n_p = normalize(bary.x * b_metrics.snap_surf_norm_area[i00].xyz + bary.y * b_metrics.snap_surf_norm_area[i10].xyz + bary.z * b_metrics.snap_surf_norm_area[i11].xyz);
+                        float diff_l = 0.35 + 0.65 * max(0.0, dot(n_p, light_dir));
+                        vec3 base_rgb = vec3(
+                            0.52 + 0.46 * tanh(rgbl.x * 2.8 + 0.4 * n_p.x),
+                            0.48 + 0.46 * tanh(rgbl.y * 2.8 + 0.4 * n_p.y),
+                            0.55 + 0.44 * tanh(rgbl.z * 2.8 + 0.4 * n_p.z)
+                        );
+                        float wire = min(min(bary.x, bary.y), bary.z);
+                        surf_shaded = base_rgb * diff_l * (0.75 + 0.35 * rgbl.w);
+                        if (wire < 0.065) {
+                            surf_shaded = mix(vec3(0.95, 0.98, 1.0), surf_shaded, wire / 0.065);
+                        }
+                    }
+                }
+                /* Треугольник 2: (i00, i11, i01) */
+                if (point_in_triangle_2d(p, surf_sc[i00], surf_sc[i11], surf_sc[i01], bary)) {
+                    float z_tri = bary.x * surf_z[i00] + bary.y * surf_z[i11] + bary.z * surf_z[i01];
+                    if (z_tri > 0.2 && z_tri < best_z) {
+                        best_z = z_tri;
+                        hit_surface = true;
+                        vec4 rgbl = bary.x * b_metrics.snap_surf_rgbl[i00] + bary.y * b_metrics.snap_surf_rgbl[i11] + bary.z * b_metrics.snap_surf_rgbl[i01];
+                        vec3 n_p = normalize(bary.x * b_metrics.snap_surf_norm_area[i00].xyz + bary.y * b_metrics.snap_surf_norm_area[i11].xyz + bary.z * b_metrics.snap_surf_norm_area[i01].xyz);
+                        float diff_l = 0.35 + 0.65 * max(0.0, dot(n_p, light_dir));
+                        vec3 base_rgb = vec3(
+                            0.52 + 0.46 * tanh(rgbl.x * 2.8 + 0.4 * n_p.x),
+                            0.48 + 0.46 * tanh(rgbl.y * 2.8 + 0.4 * n_p.y),
+                            0.55 + 0.44 * tanh(rgbl.z * 2.8 + 0.4 * n_p.z)
+                        );
+                        float wire = min(min(bary.x, bary.y), bary.z);
+                        surf_shaded = base_rgb * diff_l * (0.75 + 0.35 * rgbl.w);
+                        if (wire < 0.065) {
+                            surf_shaded = mix(vec3(0.95, 0.98, 1.0), surf_shaded, wire / 0.065);
+                        }
+                    }
+                }
+            }
+        }
+        if (hit_surface) {
+            col = surf_shaded;
+        }
+
+        /* 1.4. Отрисовка 256 3D-коллайдеров в комнате с перспективой и лучами 2D-коллизии / рикошета */
+        vec2 focus_sc;
+        float focus_z;
+        project_3d_to_2d(focus_pos, cam_pos, cam_fwd, cam_right, cam_up, focus_sc, focus_z);
+
+        for (uint j = 0; j < N_OBJECTS; ++j) {
+            vec3 r_j = b_objects.obj_pos_rad[j].xyz;
+            vec4 c_info = b_metrics.snap_obj_collision[j];
+            float lod_mode = c_info.x;
+            float T_tr = c_info.y;
+            float R_rf = c_info.z;
+
+            vec2 obj_sc;
+            float obj_z;
+            if (!project_3d_to_2d(r_j, cam_pos, cam_fwd, cam_right, cam_up, obj_sc, obj_z)) continue;
+
+            /* Если объект вступил в 2D-коллизию (lod_mode >= 0), рисуем луч пробоя T(r) и рикошета R(r) */
+            if (lod_mode >= -0.1) {
+                float d_ray = dist_to_segment(p, focus_sc, obj_sc);
+                if (d_ray < 1.8 && obj_z < best_z + 0.5) {
+                    vec3 ray_c = mix(vec3(1.0, 0.42, 0.15), vec3(0.15, 1.0, 0.68), T_tr);
+                    col = mix(col, ray_c, (1.0 - d_ray / 1.8) * (0.45 + 0.50 * T_tr));
+                }
+            }
+
+            /* Перспективный радиус коллайдера на экране: R_screen ~ R_3d / depth_z */
+            float r_pix = (lod_mode < -0.1) ? (9.5 / obj_z) : ((22.0 - 3.5 * lod_mode) / obj_z);
+            if (j == tgt_id) r_pix = 30.0 / obj_z;
+
+            float d_pix = length(p - obj_sc);
+            if (d_pix < r_pix && obj_z < best_z) {
+                float nz = sqrt(max(0.0, 1.0 - (d_pix * d_pix) / (r_pix * r_pix)));
+                vec3 n_sph = normalize(vec3((p.x - obj_sc.x) / r_pix, (obj_sc.y - p.y) / r_pix, nz));
+                float shading = 0.30 + 0.70 * max(0.0, dot(n_sph, light_dir));
+
+                vec3 obj_col;
+                if (j == tgt_id) {
+                    obj_col = vec3(1.0, 0.25, 0.85); /* Целевой коллайдер шага — ярко-пурпурный */
+                } else if (lod_mode < -0.1) {
+                    obj_col = vec3(0.28, 0.34, 0.44); /* Отсечен Spatial Hash Grid (Broad-Phase Culling) */
+                } else if (lod_mode < 0.5) {
+                    obj_col = vec3(1.0, 0.78, 0.18);  /* LOD 0 (полные 64 грани в ближней зоне) — золотой */
+                } else if (lod_mode < 1.5) {
+                    obj_col = vec3(0.18, 0.92, 0.62); /* LOD 1 (16 граней в средней зоне) — изумрудный */
+                } else {
+                    obj_col = vec3(0.25, 0.60, 1.0);  /* LOD 2 (4 числа силуэта в дальней зоне) — синий */
+                }
+                col = obj_col * shading;
+                best_z = obj_z;
+            } else if (lod_mode >= -0.1 && abs(d_pix - (r_pix + 3.0)) < 1.2) {
+                /* Кольцо 2D-мембраны контакта вокруг активных коллайдеров */
+                col = mix(col, vec3(0.95, 0.90, 0.45), 0.70);
+            }
+        }
+
+        /* Рамка левой 3D-панели и цветовая легенда уровней LOD внизу слева */
+        if (px.x == 759) col = vec3(0.25, 0.35, 0.52);
+        if (px.y >= 685 && px.x >= 16 && px.x < 740) {
+            col = mix(col, vec3(0.02, 0.03, 0.05), 0.75);
+            if (px.y >= 694 && px.y < 708) {
+                if (px.x >= 28 && px.x < 42) col = vec3(1.0, 0.78, 0.18);      /* LOD 0 (64f) */
+                else if (px.x >= 180 && px.x < 194) col = vec3(0.18, 0.92, 0.62); /* LOD 1 (16f) */
+                else if (px.x >= 330 && px.x < 344) col = vec3(0.25, 0.60, 1.0);  /* LOD 2 (4f) */
+                else if (px.x >= 480 && px.x < 494) col = vec3(0.28, 0.34, 0.44); /* Culled (0f) */
+                else if (px.x >= 610 && px.x < 624) col = vec3(1.0, 0.25, 0.85);  /* Target 2D Hit */
+            }
+        }
+    }
+    /* =========================================================================
+     * ПРАВАЯ ИНФОРМАЦИОННАЯ ПАНЕЛЬ (X: 760..1280, Y: 0..720)
+     * ========================================================================= */
+    else {
+        col = vec3(0.028, 0.034, 0.050);
+
+        /* --- БЛОК 2А (ВВЕРХУ СПРАВА, Y: 12..225):
+         *     1) 2D-развёртка поверхности коллизии (u, v) 8x8 в каналах RGBL (X: 780..980, Y: 28..228)
+         *     2) Пирамида Mip-map LOD 0 (8x8) -> LOD 1 (4x4) -> LOD 2 (2x2) (X: 1010..1260, Y: 28..228) --- */
+        if (px.x >= 780 && px.x < 980 && px.y >= 24 && px.y < 224) {
+            uint u = uint((px.y - 24) * SIDE / 200);
+            uint v = uint((px.x - 780) * SIDE / 200);
+            uint d = clamp(u * SIDE + v, 0u, 63u);
+            vec4 rgbl = b_metrics.snap_surf_rgbl[d];
+            vec3 n_d = b_metrics.snap_surf_norm_area[d].xyz;
+            float dA = b_metrics.snap_surf_norm_area[d].w;
+            vec3 cell_c = vec3(
+                0.50 + 0.48 * tanh(rgbl.x * 3.2 + 0.35 * n_d.x),
+                0.50 + 0.48 * tanh(rgbl.y * 3.2 + 0.35 * n_d.y),
+                0.52 + 0.48 * tanh(rgbl.z * 3.2 + 0.35 * n_d.z)
+            ) * (0.60 + 0.35 * rgbl.w);
+            int lx = (px.x - 780) % 25;
+            int ly = (px.y - 24) % 25;
+            if (lx == 0 || ly == 0) cell_c *= 0.35;
+            /* Индикатор площади полигона dA_poly в центре каждой ячейки 8x8 */
+            if (length(vec2(lx - 12, ly - 12)) < clamp(dA * 3.2, 2.0, 9.5)) {
+                cell_c = mix(cell_c, vec3(1.0, 0.96, 0.75), 0.45);
+            }
+            col = cell_c;
+        }
+
+        /* Пирамида Mip-map уровней: LOD 0 (8x8), LOD 1 (4x4), LOD 2 (2x2) */
+        if (px.x >= 1005 && px.x < 1125 && px.y >= 24 && px.y < 144) {
+            /* LOD 0 (8x8 = 64 признака) */
+            uint u = uint((px.y - 24) * 8 / 120);
+            uint v = uint((px.x - 1005) * 8 / 120);
+            vec4 f0 = b_objects.obj_mip0_features[tgt_id * 16 + ((u * 8 + v) >> 2u)];
+            float val = f0[(u * 8 + v) & 3u];
+            col = mix(vec3(0.10, 0.25, 0.55), vec3(1.0, 0.75, 0.15), 0.5 + 0.5 * tanh(val));
+            if (((px.x - 1005) % 15 == 0) || ((px.y - 24) % 15 == 0)) col *= 0.4;
+        }
+        if (px.x >= 1140 && px.x < 1220 && px.y >= 24 && px.y < 104) {
+            /* LOD 1 (4x4 = 16 свернутых признаков) */
+            uint u = uint((px.y - 24) * 4 / 80);
+            uint v = uint((px.x - 1140) * 4 / 80);
+            uint idx16 = u * 4 + v;
+            vec4 f1 = b_objects.obj_mip1_features[tgt_id * 4 + (idx16 >> 2u)];
+            float val = f1[idx16 & 3u];
+            col = mix(vec3(0.08, 0.45, 0.45), vec3(0.25, 0.98, 0.65), 0.5 + 0.5 * tanh(val));
+            if (((px.x - 1140) % 20 == 0) || ((px.y - 24) % 20 == 0)) col *= 0.4;
+        }
+        if (px.x >= 1140 && px.x < 1200 && px.y >= 120 && px.y < 180) {
+            /* LOD 2 (2x2 = 4 числа грубого силуэта для дальних объектов) */
+            uint u = uint((px.y - 120) * 2 / 60);
+            uint v = uint((px.x - 1140) * 2 / 60);
+            vec4 f2 = b_objects.obj_mip2_features[tgt_id];
+            float val = f2[u * 2 + v];
+            col = mix(vec3(0.15, 0.20, 0.65), vec3(0.45, 0.80, 1.0), 0.5 + 0.5 * tanh(val));
+            if (((px.x - 1140) % 30 == 0) || ((px.y - 120) % 30 == 0)) col *= 0.4;
+        }
+
+        /* --- БЛОК 2Б (В СЕРЕДИНЕ СПРАВА, Y: 240..435):
+         *     Два ортогональных 2D-разреза 3D-комнаты и воксельного поля среды Psi(x,y,z,t):
+         *     - Слева (X: 780..1010, Y: 245..430): Проекция XY + срез 3D-текстуры Psi(x,y,z_c)
+         *     - Справа (X: 1030..1260, Y: 245..430): Проекция XZ + срез 3D-текстуры Psi(x,y_c,z) --- */
+        if (px.y >= 245 && px.y < 430) {
+            if (px.x >= 780 && px.x < 1010) {
+                vec2 uv = vec2(float(px.x - 780) / 230.0, float(430 - px.y) / 185.0);
+                vec3 uvw = vec3(uv.x, uv.y, clamp((focus_pos.z + 2.0) * 0.25, 0.0, 1.0));
+                vec4 psi_slice = textureLod(u_envVolumeSampler, uvw, 0.0);
+                col = vec3(
+                    0.12 + 0.35 * max(0.0, tanh(psi_slice.y)),
+                    0.10 + 0.30 * max(0.0, tanh(psi_slice.x)),
+                    0.18 + 0.35 * abs(tanh(psi_slice.z))
+                );
+                vec2 world_xy = uv * 4.0 - vec2(2.0);
+                for (uint j = 0; j < N_OBJECTS; ++j) {
+                    vec2 oj = b_objects.obj_pos_rad[j].xy;
+                    float lod_m = b_metrics.snap_obj_collision[j].x;
+                    float d2 = length(world_xy - oj);
+                    if (d2 < 0.075) {
+                        col = (lod_m >= -0.1) ? vec3(1.0, 0.85, 0.20) : vec3(0.42, 0.50, 0.62);
+                    }
+                }
+                if (length(world_xy - focus_pos.xy) < 0.14) col = vec3(0.20, 1.0, 0.90);
+            }
+            if (px.x >= 1030 && px.x < 1260) {
+                vec2 uv = vec2(float(px.x - 1030) / 230.0, float(430 - px.y) / 185.0);
+                vec3 uvw = vec3(uv.x, clamp((focus_pos.y + 2.0) * 0.25, 0.0, 1.0), uv.y);
+                vec4 psi_slice = textureLod(u_envVolumeSampler, uvw, 0.0);
+                col = vec3(
+                    0.10 + 0.35 * abs(tanh(psi_slice.w)),
+                    0.14 + 0.35 * max(0.0, tanh(psi_slice.x)),
+                    0.16 + 0.35 * max(0.0, tanh(psi_slice.y))
+                );
+                vec2 world_xz = uv * 4.0 - vec2(2.0);
+                for (uint j = 0; j < N_OBJECTS; ++j) {
+                    vec2 oj = b_objects.obj_pos_rad[j].xz;
+                    float lod_m = b_metrics.snap_obj_collision[j].x;
+                    float d2 = length(world_xz - oj);
+                    if (d2 < 0.075) {
+                        col = (lod_m >= -0.1) ? vec3(0.25, 0.95, 0.60) : vec3(0.42, 0.50, 0.62);
+                    }
+                }
+                if (length(world_xz - focus_pos.xz) < 0.14) col = vec3(1.0, 0.35, 0.85);
+            }
+        }
+
+        /* --- БЛОК 2В (ВНИЗУ СПРАВА, X: 780..1260, Y: 448..705):
+         *     ЖИВЫЕ ГРАФИКИ ВСЕХ ШАГОВ ОБУЧЕНИЯ И ЦИФРОВАЯ ТЕЛЕМЕТРИЯ --- */
+        if (px.x >= 780 && px.x < 1260 && px.y >= 448 && px.y < 704) {
+            col = vec3(0.018, 0.024, 0.036);
+            /* Горизонтальные линии сетки графика */
+            if (((px.y - 448) % 32) == 0 || ((px.x - 780) % 48) == 0) {
+                col = vec3(0.06, 0.08, 0.12);
+            }
+
+            uint n_pts = min(rpc.total_steps_done, uint(MAX_HISTORY));
+            if (n_pts > 1u) {
+                float x_norm = float(px.x - 780) / 480.0;
+                uint h_idx = clamp(uint(x_norm * float(n_pts - 1u)), 0u, n_pts - 1u);
+                uint h_prev = (h_idx > 0u) ? (h_idx - 1u) : 0u;
+
+                vec4 h_cur = b_history.hist_series[h_idx];
+                vec4 h_prv = b_history.hist_series[h_prev];
+
+                /* Кривая 1 (Бирюзовая): Мгновенная ошибка 2D-коллизии (в битах, шкала 0..8 бит) */
+                int y_loss = 700 - int(clamp(h_cur.x / 8.0, 0.0, 1.0) * 240.0);
+                if (abs(px.y - y_loss) <= 1) {
+                    col = mix(col, vec3(0.20, 0.65, 0.95), 0.55);
+                }
+
+                /* Кривая 2 (Ярко-золотая, жирная): Сглаженная кривая обучения EMA(50) BPC */
+                int y_ema0 = 700 - int(clamp(h_prv.y / 8.0, 0.0, 1.0) * 240.0);
+                int y_ema1 = 700 - int(clamp(h_cur.y / 8.0, 0.0, 1.0) * 240.0);
+                int y_min = min(y_ema0, y_ema1) - 2;
+                int y_max = max(y_ema0, y_ema1) + 2;
+                if (px.y >= y_min && px.y <= y_max) {
+                    col = vec3(1.0, 0.84, 0.18);
+                }
+
+                /* Кривая 3 (Изумрудно-зелёная): Доля сэкономленного чтения VRAM за счёт Mip-LOD + Spatial Culling (0..100%) */
+                int y_save = 700 - int(clamp(h_cur.z, 0.0, 1.0) * 240.0);
+                if (abs(px.y - y_save) <= 1) {
+                    col = vec3(0.18, 0.95, 0.55);
+                }
+
+                /* Кривая 4 (Пурпурная): Проницаемость мембраны T(r) по Снеллиусу–Френелю (0..1) */
+                int y_trans = 700 - int(clamp(h_cur.w, 0.0, 1.0) * 240.0);
+                if (abs(px.y - y_trans) <= 1) {
+                    col = vec3(0.95, 0.32, 0.85);
+                }
+            }
+
+            /* Отрисовка крупных цифровых значений в верхней части графика:
+             * 1) Текущий EMA(50) Loss (золотым цветом)
+             * 2) % отсеченных объектов Spatial Culling (бирюзовым)
+             * 3) % экономии памяти VRAM Mip-LOD (зелёным) */
+            if (draw_float_val(px, ivec2(792, 458), rpc.cur_ema_bpc, 3) > 0.5) {
+                col = vec3(1.0, 0.86, 0.22);
+            }
+            if (draw_float_val(px, ivec2(945, 458), rpc.cur_cull_pct, 3) > 0.5) {
+                col = vec3(0.28, 0.82, 1.0);
+            }
+            if (draw_float_val(px, ivec2(1100, 458), rpc.cur_vram_save_pct, 3) > 0.5) {
+                col = vec3(0.22, 0.98, 0.58);
+            }
+        }
+    }
+
+    uvec3 rgb_u8 = uvec3(clamp(col * 255.0, vec3(0.0), vec3(255.0)));
+    b_frame.pixels[px.y * IMG_W + px.x] = (255u << 24u) | (rgb_u8.z << 16u) | (rgb_u8.y << 8u) | rgb_u8.x;
+}
