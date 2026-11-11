@@ -1,0 +1,4 @@
+N8 Metal VRR Check on AMD Radeon Pro 5500M: supportsRasterizationRateMapWithLayerCount(1) = true
+screenSize = 512x512 (262144 fragment calls, 4194304 bytes RGBA32F)
+physicalSize = 352x352 (granularity 32x32) (123904 fragment calls, 1982464 bytes RGBA32F)
+fragment_calls_saved = 138240 (52.73% reduction)

@@ -1,0 +1,12 @@
+=== MARKOVMEMBRANE ENGINE v13 НА VULKAN API (GPU: AMD Radeon Pro 5500M) ===
+Режим: Задача 2 (N1-N13) — двусторонний срез пирамиды Хаара (E_self <= tau* && E_parent > tau*) + отслеживание деформации рельефа + монополь дальнего поля
+шаг    1/2400 | Loss=8.028 бит (EMA50=8.028) | Spatial Culling=100.0% | Mip-LOD экономия VRAM=100.0% (прочитано 0 float из 16384) | T(r)=0.000 | A_poly=1.27
+шаг  400/2400 | Loss=3.747 бит (EMA50=3.711) | Spatial Culling=71.0% | Mip-LOD экономия VRAM=76.9% (прочитано 3780 float из 16384) | T(r)=0.707 | A_poly=2.83
+шаг  800/2400 | Loss=3.759 бит (EMA50=3.685) | Spatial Culling=71.0% | Mip-LOD экономия VRAM=74.3% (прочитано 4213 float из 16384) | T(r)=0.718 | A_poly=2.82
+шаг 1200/2400 | Loss=4.044 бит (EMA50=3.625) | Spatial Culling=72.4% | Mip-LOD экономия VRAM=76.0% (прочитано 3936 float из 16384) | T(r)=0.721 | A_poly=2.65
+шаг 1600/2400 | Loss=3.631 бит (EMA50=3.595) | Spatial Culling=71.3% | Mip-LOD экономия VRAM=74.0% (прочитано 4256 float из 16384) | T(r)=0.726 | A_poly=2.72
+шаг 2000/2400 | Loss=3.448 бит (EMA50=3.584) | Spatial Culling=71.8% | Mip-LOD экономия VRAM=74.9% (прочитано 4110 float из 16384) | T(r)=0.733 | A_poly=2.61
+шаг 2400/2400 | Loss=3.257 бит (EMA50=3.574) | Spatial Culling=71.3% | Mip-LOD экономия VRAM=74.1% (прочитано 4240 float из 16384) | T(r)=0.733 | A_poly=2.57
+
+=== ЗАПУСК ПОЛНОЙ ВАЛИДАЦИИ T1 НА ВСЕХ БАЙТАХ WIKITEXT-2 НА VULKAN GPU ===
+Полная валидация T1 завершена за 30.66 с: n_bytes = 250240 | BPC = 3.6560 ± 0.00432 (SE) | Spatial Culling = 71.49% | Прочитано 16536.7 байт/шаг (экономия VRAM = 74.77%) | train_steps_per_sec = 273.1 | render_fps = 21.3
