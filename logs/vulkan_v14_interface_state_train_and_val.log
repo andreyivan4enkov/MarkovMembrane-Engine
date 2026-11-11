@@ -1,0 +1,12 @@
+=== MARKOVMEMBRANE ENGINE v12 НА VULKAN API (GPU: AMD Radeon Pro 5500M) ===
+Полный отказ от матриц (0 GEMM / 0 matmul): 3D-текстура среды TMU + Mip-map LOD + Spatial Hash Grid + 2D-коллизия Снеллиуса–Френеля!
+шаг    1/2400 | Loss=7.979 бит (EMA50=7.979) | Spatial Culling=49.4% | Mip-LOD экономия VRAM=96.5% (прочитано 567 float из 16384) | T(r)=0.621 | A_poly=1.27
+шаг  400/2400 | Loss=3.728 бит (EMA50=3.703) | Spatial Culling=1.0% | Mip-LOD экономия VRAM=69.5% (прочитано 4996 float из 16384) | T(r)=0.627 | A_poly=2.82
+шаг  800/2400 | Loss=3.799 бит (EMA50=3.703) | Spatial Culling=3.2% | Mip-LOD экономия VRAM=71.2% (прочитано 4711 float из 16384) | T(r)=0.633 | A_poly=2.81
+шаг 1200/2400 | Loss=4.040 бит (EMA50=3.634) | Spatial Culling=18.5% | Mip-LOD экономия VRAM=76.1% (прочитано 3916 float из 16384) | T(r)=0.652 | A_poly=2.66
+шаг 1600/2400 | Loss=3.584 бит (EMA50=3.608) | Spatial Culling=17.4% | Mip-LOD экономия VRAM=74.8% (прочитано 4129 float из 16384) | T(r)=0.656 | A_poly=2.71
+шаг 2000/2400 | Loss=3.436 бит (EMA50=3.588) | Spatial Culling=39.7% | Mip-LOD экономия VRAM=77.5% (прочитано 3688 float из 16384) | T(r)=0.677 | A_poly=2.62
+шаг 2400/2400 | Loss=3.289 бит (EMA50=3.585) | Spatial Culling=41.4% | Mip-LOD экономия VRAM=76.3% (прочитано 3887 float из 16384) | T(r)=0.677 | A_poly=2.62
+
+=== ЗАПУСК ПОЛНОЙ ВАЛИДАЦИИ T1 НА ВСЕХ БАЙТАХ WIKITEXT-2 НА VULKAN GPU ===
+Полная валидация T1 завершена за 9.60 с: n_bytes = 250240 | BPC = 3.6705 ± 0.00441 (SE) | Spatial Culling = 45.53% | Прочитано 14775.0 байт/шаг (экономия VRAM = 77.46%) | train_steps_per_sec = 391.0 | render_fps = 30.2

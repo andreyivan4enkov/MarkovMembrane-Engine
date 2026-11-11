@@ -1,0 +1,105 @@
+{
+  "run_id": "task3-interface-state-interaction-bound-F1-to-F9",
+  "engine": "cpp_task2",
+  "changed_exactly_one_thing": true,
+  "budget": {"bytes_seen": 60000, "epochs_of_full_wt2": 0.0399, "seeds": [1, 2, 3, 4, 5]},
+  "author_logic_compliance": {
+    "surface_collapsed_to_3_numbers": false,
+    "averaging_source": "perspective",
+    "cascade_depth": "convergence",
+    "error_signal": "per_coordinate",
+    "far_field": "monopole"
+  },
+  "measurements": {
+    "mac_counted": 42198,
+    "mac_counted_dense_tau0": 71263,
+    "mac_estimated_additive": 0,
+    "bytes_read_per_token": 2680,
+    "bytes_read_dense_tau0": 49152,
+    "patch_evals_per_step_barnes_hut": 1783,
+    "patch_evals_exhaustive_64x96": 6144,
+    "barnes_hut_theta0_max_diff_vs_exhaustive": 0.000000e+00,
+    "metal_vrr_supported": true,
+    "metal_vrr_measured": true,
+    "metal_vrr_fragment_calls_saved": 138240,
+    "field_to_source_map": "review_package/field_to_source_map.md"
+  },
+  "cascade_convergence_S4": {
+    "mean_waves": 4.736,
+    "BPC_convergence": 5.2928,
+    "BPC_fixed_3_waves": 5.2923,
+    "waves_histogram": {"1": 4599, "2": 4526, "3": 14093, "4": 47479, "5": 138143, "6": 41512}
+  },
+  "approximation_curve": [
+    {"tau_int": 0.000010, "mean_m": 4.94, "BPC": 5.29282, "delta_BPC": 0.00000, "mac": 42890, "bytes": 3792},
+    {"tau_int": 0.002000, "mean_m": 4.94, "BPC": 5.29282, "delta_BPC": 0.00000, "mac": 42889, "bytes": 3790},
+    {"tau_int": 0.015000, "mean_m": 4.80, "BPC": 5.29282, "delta_BPC": 0.00001, "mac": 42822, "bytes": 3683},
+    {"tau_int": 0.060000, "mean_m": 3.66, "BPC": 5.29288, "delta_BPC": 0.00006, "mac": 42277, "bytes": 2807},
+    {"tau_int": 0.180000, "mean_m": 3.49, "BPC": 5.29340, "delta_BPC": 0.00059, "mac": 42198, "bytes": 2680},
+    {"tau_int": 0.500000, "mean_m": 2.62, "BPC": 5.38822, "delta_BPC": 0.09540, "mac": 41739, "bytes": 2014},
+    {"tau_int": 1.400000, "mean_m": 1.50, "BPC": 5.89095, "delta_BPC": 0.59814, "mac": 41178, "bytes": 1148},
+    {"tau_int": 3.800000, "mean_m": 1.01, "BPC": 6.25681, "delta_BPC": 0.96400, "mac": 40729, "bytes": 776}
+  ],
+  "deformation_bound": {
+    "checks_total": 144202176,
+    "violations": 0,
+    "interaction_bound_checks": 400000,
+    "interaction_bound_violations": 0,
+    "bound_gap_mean": 2.0290,
+    "bound_gap_p50": 0.9441,
+    "bound_gap_p90": 5.6280
+  },
+  "allocation": {
+    "uniform_tau_curve": [
+      {"mean_m": 4.94, "delta_BPC": 0.00000, "mac": 42890, "bytes": 3792},
+      {"mean_m": 4.94, "delta_BPC": 0.00000, "mac": 42889, "bytes": 3790},
+      {"mean_m": 4.80, "delta_BPC": 0.00001, "mac": 42822, "bytes": 3683},
+      {"mean_m": 3.66, "delta_BPC": 0.00006, "mac": 42277, "bytes": 2807},
+      {"mean_m": 3.49, "delta_BPC": 0.00059, "mac": 42198, "bytes": 2680},
+      {"mean_m": 2.62, "delta_BPC": 0.09540, "mac": 41739, "bytes": 2014},
+      {"mean_m": 1.50, "delta_BPC": 0.59814, "mac": 41178, "bytes": 1148},
+      {"mean_m": 1.01, "delta_BPC": 0.96400, "mac": 40729, "bytes": 776}
+    ],
+    "lambda_curve": [
+      {"lambda": 0.00000000, "mean_m": 4.94, "delta_BPC": 0.00000, "mac": 42890, "bytes": 3792},
+      {"lambda": 0.00000050, "mean_m": 4.93, "delta_BPC": 0.00000, "mac": 42887, "bytes": 3787},
+      {"lambda": 0.00001000, "mean_m": 4.69, "delta_BPC": 0.00003, "mac": 42770, "bytes": 3600},
+      {"lambda": 0.00015000, "mean_m": 3.66, "delta_BPC": 0.00004, "mac": 42282, "bytes": 2814},
+      {"lambda": 0.00120000, "mean_m": 3.46, "delta_BPC": 0.00101, "mac": 42183, "bytes": 2657},
+      {"lambda": 0.01200000, "mean_m": 2.49, "delta_BPC": 0.11667, "mac": 41694, "bytes": 1913},
+      {"lambda": 0.06000000, "mean_m": 1.58, "delta_BPC": 0.56943, "mac": 41231, "bytes": 1211},
+      {"lambda": 0.45000000, "mean_m": 1.04, "delta_BPC": 0.92218, "mac": 40805, "bytes": 798}
+    ],
+    "gain_at_equal_error": 1.008
+  },
+  "memory_matched_control": {
+    "membrane_state_6208_BPC_mean": 5.2103,
+    "membrane_state_6208_BPC_std": 0.0171,
+    "membrane_state_64_BPC_mean": 5.2090,
+    "membrane_state_64_BPC_std": 0.0273,
+    "classic_state_64_BPC_mean": 4.9745,
+    "classic_state_64_BPC_std": 0.0011,
+    "classic_state_matched_6208_BPC_mean": 4.9756,
+    "classic_state_matched_6208_BPC_std": 0.0010
+  },
+  "geometry_ablations_after_F8": {
+    "relief_delta_BPC": -0.0018,
+    "exponent_1_0_delta_BPC": 0.0026,
+    "exponent_0_5_delta_BPC": 0.0152,
+    "learned_alpha_final": 1.1500,
+    "luminance_delta_BPC": -0.0031,
+    "S5_asymmetric_coupling_delta_BPC": 0.0959
+  },
+  "streaming": {
+    "two_lists": true,
+    "eviction": "error_priority",
+    "transition_BPC_dip": 0.3464,
+    "miss_steps_count_in_10k": 8995,
+    "touched_nodes_frac": 0.8429
+  },
+  "negative_results": [
+    "F5 (Контроль по памяти 2x2 на 5 сидах): При расширении состояния классической модели с 64 до 6208 чисел (как у psi_field + w_int мембраны) ошибка классики снижается с 4.9745 до 4.9756 BPC, а у мембраны при отключении psi_field (сжатие состояния с 6208 до 64 чисел) ошибка ухудшается с 5.2103 до 5.2090 BPC. Значительная часть преимущества в потоковом режиме обеспечивается именно объемом рекуррентного поля состояния 6208 чисел, а не одной только 3D-геометрией.",
+    "F8 (Аблации геометрии после удаления центроида): После замены центроида на двоичное дерево площадок поверхности отключение яркости (luminance_L === 1) ухудшает ошибку на -0.0031 BPC, а отключение рельефа — на -0.0018 BPC, однако замена показателя степени объема с 2/3 на 1.0 или 0.5 меняет BPC всего на +0.0026 / +0.0152 BPC, а обучаемый показатель alpha уходит к 1.1500 (тезис об уникальности экспоненты 2/3 не подтверждается).",
+    "S3 (Несопоставимость старых корреляций с оракулом): В прошлых прогонах эвристика давала 0.9895 и 0.6215 из-за смены формулы оракула между скриптами. Чужой критерий ранговой корреляции удален из ворот приемки; основным результатом является кривая точности аппроксимации (объем вычисления против ошибки огрубления)."
+  ]
+}

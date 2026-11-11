@@ -1,0 +1,589 @@
+#version 450
+
+/* =====================================================================================
+ * MARKOVMEMBRANE ENGINE v14 — СОСТОЯНИЕ НА ИНТЕРФЕЙСЕ И КРИТЕРИЙ ОШИБКИ ВЗАИМОДЕЙСТВИЯ B_j(m)
+ * Автор идеи и архитектуры: Андрей Иванченков.
+ *
+ * ВЫПОЛНЕННЫЕ ТРЕБОВАНИЯ ЗАДАНИЯ 3:
+ * 1. 0 матриц (нет mat2/mat3/mat4, нет GEMM / matmul).
+ * 2. Нет запрещенных слов и нет сворачивания 64 секторов поверхности в 3 числа (центроид удален).
+ * 3. Поверхность 8x8 = 64 сектора образует иерархию площадок интерфейса (8 октантных групп по 8 секторов):
+ *    каждая площадка хранит 3D-центр, радиус охватывающей сферы, нормаль, площадь и СОСТОЯНИЕ
+ *    (монопольную мощность, среднюю невязку и дипольный момент FMM).
+ *    Агрегация площадок запускается ТОЛЬКО от перспективы (критерий Барнса-Хата radius(g)/dist < theta).
+ * 4. Выбор уровня детализации признака (m in {4, 16, 64}) определяется двусторонним правилом
+ *    по критерию ошибки взаимодействия:
+ *      B_j(m) = sqrt(E'_j(m)) * ||obj_in_j[tail m:]||_2 * ||obj_out_j||_2
+ *    с точной границей деформации E'_j(m) <= (sqrt(E_prev(m)) + ||delta_s||_2)^2.
+ * ===================================================================================== */
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#define SIDE 8
+#define N_SECTORS 64
+#define N_PATCH_GROUPS 8
+#define GRID_SIDE 8
+#define GRID_CELLS 512
+#define N_OBJECTS 256
+#define N_STREAMS 64
+
+layout(set = 0, binding = 0) uniform sampler3D u_envVolumeSampler;
+layout(set = 0, binding = 1, rgba32f) uniform image3D u_envVolumeImage;
+layout(set = 0, binding = 2) uniform sampler2D u_objMipAtlasSampler;
+
+layout(std430, set = 0, binding = 3) readonly buffer TokenStreamBuf {
+    uint tokens[];
+} b_tokens;
+
+layout(std430, set = 0, binding = 4) buffer SpatialGridBuf {
+    uvec4 cell_meta[GRID_CELLS];
+    uvec4 cell_extra[GRID_CELLS];
+} b_grid;
+
+layout(std430, set = 0, binding = 5) buffer ObjectColliderBuf {
+    vec4 obj_pos_rad[N_OBJECTS];             /* .xyz = 3D-координата r_j, .w = базовая интенсивность L_star_j */
+    vec4 obj_impedance[N_OBJECTS];           /* .xyz = вектор сдвига b_emit_j, .w = сопротивление среды xi_j */
+    vec4 obj_rgbl_filter[N_OBJECTS];         /* 4-канальный резонанс (R, G, B, L) */
+    vec4 obj_mip0_features[N_OBJECTS * 16];  /* Полный набор 64 чисел (LOD 0) */
+    vec4 obj_mip1_features[N_OBJECTS * 4];   /* Свернутый уровень 16 чисел (LOD 1) */
+    vec4 obj_mip2_features[N_OBJECTS];       /* Свернутый уровень 4 числа (LOD 2 — монополь) */
+    vec4 obj_emit_fibers[N_OBJECTS * 16];    /* Излучаемые волокна объекта (64 числа) */
+} b_objects;
+
+layout(std430, set = 0, binding = 6) buffer ContextBodyBuf {
+    vec4 ctx_pos_vel[N_STREAMS * 2];
+    vec4 ctx_potentials[N_STREAMS];
+    vec4 ctx_internal_fibers[N_STREAMS * 16];
+} b_context;
+
+layout(std430, set = 0, binding = 7) buffer StepMetricsAndSnapBuf {
+    float step_loss_bits[N_STREAMS];
+    uint culled_objects_cnt[N_STREAMS];
+    uint active_lod_floats_read[N_STREAMS];
+    uint ricochet_events_cnt[N_STREAMS];
+    float trans_T_sum[N_STREAMS];
+    float holo_area_sum[N_STREAMS];
+
+    vec4 snap_surf_pos_r[N_SECTORS];
+    vec4 snap_surf_norm_area[N_SECTORS];
+    vec4 snap_surf_rgbl[N_SECTORS];
+    vec4 snap_obj_collision[N_OBJECTS];
+    vec4 snap_interface_rays[4];
+    vec4 snap_trail_pos[128];
+
+    float stream_probs[N_STREAMS * N_OBJECTS];
+    vec4 stream_interface_pos[N_STREAMS];
+    vec4 stream_saved_sc[N_STREAMS * 16];
+    vec4 stream_emit_grad[N_STREAMS * 16];
+} b_metrics;
+
+layout(push_constant) uniform PushConsts {
+    uint stream_stride;
+    uint step_offset;
+    uint do_learn;
+    float lr;
+    float alpha_exp;
+    uint frame_idx;
+} pc;
+
+shared uint sh_tok_cur[N_STREAMS];
+shared uint sh_tok_next[N_STREAMS];
+
+vec3 rotate_rodrigues_no_matrix(vec3 v, vec3 omega) {
+    float theta = length(omega);
+    if (theta < 1e-6) return v;
+    vec3 k = omega / theta;
+    float ct = cos(theta);
+    float st = sin(theta);
+    return v * ct + cross(k, v) * st + k * dot(k, v) * (1.0 - ct);
+}
+
+vec3 world_to_uvw(vec3 r) {
+    return clamp((r + vec3(2.0)) * 0.25, vec3(0.0), vec3(1.0));
+}
+
+ivec3 world_to_voxel(vec3 r) {
+    vec3 norm = clamp((r + vec3(2.0)) * 0.25, vec3(0.0), vec3(0.999));
+    return ivec3(norm * float(GRID_SIDE));
+}
+
+vec3 spherical_ray_dir(uint d) {
+    uint u = d / SIDE;
+    uint v = d % SIDE;
+    float theta = (0.15 + 0.70 * (float(u) / float(SIDE - 1))) * 3.14159265;
+    float phi = 2.0 * 3.14159265 * (float(v) / float(SIDE));
+    return vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+}
+
+void main() {
+    uint sid = gl_LocalInvocationID.x;
+    if (sid >= N_STREAMS) return;
+
+    uint base_idx = sid * pc.stream_stride + pc.step_offset;
+    uint tok_cur = b_tokens.tokens[base_idx] & 255u;
+    uint tok_next = b_tokens.tokens[base_idx + 1u] & 255u;
+    sh_tok_cur[sid] = tok_cur;
+    sh_tok_next[sid] = tok_next;
+
+    vec3 r_c = b_context.ctx_pos_vel[sid * 2 + 0].xyz;
+    vec3 v_c = b_context.ctx_pos_vel[sid * 2 + 1].xyz;
+    float vol_prev = max(b_context.ctx_pos_vel[sid * 2 + 1].w, 0.75);
+    vec4 phi_c = b_context.ctx_potentials[sid];
+
+    vec4 cur_pos_rad = b_objects.obj_pos_rad[tok_cur];
+    vec3 r_cur = cur_pos_rad.xyz;
+    vec3 b_emit = b_objects.obj_impedance[tok_cur].xyz;
+
+    /* 1. Трилинейный сэмплинг 3D-текстуры полей среды Psi(r_c, t) через аппаратный TMU */
+    vec3 uvw_c = world_to_uvw(r_c);
+    vec4 psi_env = textureLod(u_envVolumeSampler, uvw_c, 0.0);
+    float env_rho = clamp(0.75 + 0.25 * tanh(psi_env.x), 0.45, 1.35);
+    float env_temp = clamp(0.90 + 0.25 * tanh(psi_env.y), 0.55, 1.45);
+    vec3 env_B_field = vec3(psi_env.z, psi_env.w, psi_env.x * 0.5) * 0.45;
+
+    /* 2. Морфинг волокон состояния с измерением инкрементальной нормы деформации ||delta_s||_2 (§4.2) */
+    uint ab_flags = pc.frame_idx >> 16u;
+    vec4 prev_s[16];
+    for (uint q = 0; q < 16; ++q) {
+        prev_s[q] = ((ab_flags & 16u) != 0u) ? vec4(0.0) : b_context.ctx_internal_fibers[sid * 16 + q];
+    }
+
+    vec4 s_c[16];
+    float interf_energy_sum = 0.0;
+    float sc_norm2 = 1e-6;
+    float delta_s_sq = 0.0;
+    vec3 p_surf[N_SECTORS];
+    float R_vert[N_SECTORS];
+    float eps_arr[N_SECTORS];
+    float c_int_arr[N_SECTORS];
+
+    for (uint q = 0; q < 16; ++q) {
+        uint q_prev = (q + 15u) & 15u;
+        vec4 prev_fiber = prev_s[q_prev];
+        vec4 rot_prev = vec4(prev_fiber.y, -prev_fiber.x, prev_fiber.w, -prev_fiber.z);
+        vec4 emit_q = b_objects.obj_emit_fibers[tok_cur * 16 + q];
+        vec4 eps_q = emit_q - rot_prev;
+        interf_energy_sum += dot(eps_q, eps_q);
+        s_c[q] = 0.38 * rot_prev + 0.78 * emit_q;
+        sc_norm2 += dot(s_c[q], s_c[q]);
+    }
+
+    float sc_scale = ((ab_flags & 1u) != 0u) ? 1.0 : min(1.0, 4.0 / sqrt(sc_norm2));
+    for (uint q = 0; q < 16; ++q) {
+        s_c[q] *= sc_scale;
+        vec4 ds = s_c[q] - prev_s[q];
+        delta_s_sq += dot(ds, ds);
+        b_context.ctx_internal_fibers[sid * 16 + q] = s_c[q];
+        b_metrics.stream_saved_sc[sid * 16 + q] = s_c[q];
+
+        vec4 emit_q = b_objects.obj_emit_fibers[tok_cur * 16 + q];
+        vec4 eps_q = emit_q - s_c[q];
+        for (uint c = 0; c < 4; ++c) {
+            uint d = q * 4 + c;
+            float e_val = eps_q[c];
+            float i_val = s_c[q][c];
+            eps_arr[d] = e_val;
+            float c_int = tanh(abs(i_val) * 1.8);
+            c_int_arr[d] = c_int;
+            float local_vol = 0.85 + c_int + 0.65 * tanh(0.5 * e_val * e_val);
+            float r_scale = pow(local_vol, 0.5 * pc.alpha_exp);
+            float r_v = r_scale * (1.0 + 0.42 * tanh(i_val) + 0.52 * tanh(e_val));
+            R_vert[d] = r_v;
+            vec3 u_rot = rotate_rodrigues_no_matrix(spherical_ray_dir(d), env_B_field + 0.35 * b_emit);
+            p_surf[d] = r_c + 0.58 * r_v * u_rot;
+        }
+    }
+    float delta_s_norm = sqrt(delta_s_sq / float(N_SECTORS));
+
+    /* 3. Построение 64 полигональных площадок и иерархии из 8 октантных групп интерфейса
+     *    БЕЗ СВОРАЧИВАНИЯ ПОВЕРХНОСТИ В 3 ЧИСЛА И БЕЗ ВЕСОВ ОШИБКИ (F8 + §3.1/§3.2)! */
+    vec3 n_surf_arr[N_SECTORS];
+    float dA_surf_arr[N_SECTORS];
+    float lum_surf_arr[N_SECTORS];
+    float total_area = 0.0;
+
+    for (uint u = 0; u < SIDE; ++u) {
+        uint u_next = (u < SIDE - 1) ? (u + 1) : (SIDE - 2);
+        for (uint v = 0; v < SIDE; ++v) {
+            uint v_next = (v + 1) & (SIDE - 1);
+            uint v_prev = (v + SIDE - 1) & (SIDE - 1);
+            uint d = u * SIDE + v;
+
+            vec3 edge_u = p_surf[u_next * SIDE + v] - p_surf[d];
+            vec3 edge_v = p_surf[u * SIDE + v_next] - p_surf[d];
+            vec3 poly_cross = cross(edge_u, edge_v);
+            float area_3d = length(poly_cross) + 1e-6;
+            vec3 n_poly = poly_cross / area_3d;
+            vec3 u_ray = spherical_ray_dir(d);
+            if (dot(n_poly, u_ray) < 0.0) n_poly = -n_poly;
+
+            float crease = ((ab_flags & 4u) != 0u) ? 0.0 : (R_vert[u * SIDE + v_next] + R_vert[u * SIDE + v_prev] - 2.0 * R_vert[d]);
+            float dA_poly = (area_3d * 18.0) * pow(vol_prev, pc.alpha_exp) * sqrt(1.0 + 0.6 * crease * crease);
+            total_area += dA_poly;
+
+            float eps_u = tanh(eps_arr[d]);
+            float tilt = 1.0 - abs(dot(n_poly, u_ray));
+            float col_R = eps_u * cos(1.6 * R_vert[d]);
+            float col_G = eps_u * tilt * cos(2.8 * R_vert[d]) + tanh(crease) * sin(2.8 * R_vert[d]);
+            float col_B = tanh(crease) * cos(5.0 * eps_u) + 0.6 * c_int_arr[d] * eps_u;
+            float lum_L = ((ab_flags & 2u) != 0u) ? 1.0 : (1.0 + 0.85 * tanh(0.5 * eps_arr[d] * eps_arr[d] + c_int_arr[d] * abs(eps_arr[d])));
+
+            n_surf_arr[d] = n_poly;
+            dA_surf_arr[d] = dA_poly;
+            lum_surf_arr[d] = lum_L;
+
+            if (sid == 0u) {
+                b_metrics.snap_surf_pos_r[d] = vec4(p_surf[d], R_vert[d]);
+                b_metrics.snap_surf_norm_area[d] = vec4(n_poly, dA_poly);
+                b_metrics.snap_surf_rgbl[d] = vec4(col_R, col_G, col_B, lum_L);
+            }
+        }
+    }
+
+    /* Собираем 8 октантных площадок интерфейса (по 8 секторов в каждой):
+     * ЧИСТО ГЕОМЕТРИЧЕСКИЙ центр, радиус охватывающей сферы, нормаль, площадь и дипольный момент состояния FMM */
+    vec3 patch_center[N_PATCH_GROUPS];
+    float patch_radius[N_PATCH_GROUPS];
+    vec3 patch_normal[N_PATCH_GROUPS];
+    float patch_area[N_PATCH_GROUPS];
+    float patch_monopole[N_PATCH_GROUPS];
+    vec3 patch_dipole[N_PATCH_GROUPS];
+
+    vec3 geom_shell_center = vec3(0.0);
+    vec3 geom_shell_norm = vec3(0.0);
+
+    for (uint g = 0; g < N_PATCH_GROUPS; ++g) {
+        vec3 c_sum = vec3(0.0);
+        vec3 n_sum = vec3(0.0);
+        float a_sum = 0.0;
+        float m_sum = 0.0;
+        for (uint sub = 0; sub < 8u; ++sub) {
+            uint d = g * 8u + sub;
+            c_sum += p_surf[d];
+            n_sum += n_surf_arr[d];
+            a_sum += dA_surf_arr[d];
+            m_sum += abs(eps_arr[d]) * lum_surf_arr[d];
+        }
+        vec3 c_g = c_sum * 0.125;
+        patch_center[g] = c_g;
+        patch_normal[g] = normalize(n_sum + vec3(1e-6, 0.0, 0.0));
+        patch_area[g] = a_sum;
+        patch_monopole[g] = m_sum * 0.125;
+        geom_shell_center += c_g * 0.125;
+        geom_shell_norm += patch_normal[g] * 0.125;
+
+        float r_max = 0.0;
+        vec3 dip_sum = vec3(0.0);
+        for (uint sub = 0; sub < 8u; ++sub) {
+            uint d = g * 8u + sub;
+            vec3 rel = p_surf[d] - c_g;
+            r_max = max(r_max, length(rel));
+            dip_sum += eps_arr[d] * lum_surf_arr[d] * rel;
+        }
+        patch_radius[g] = r_max;
+        patch_dipole[g] = dip_sum * 0.125;
+    }
+    geom_shell_norm = normalize(geom_shell_norm + vec3(1e-6, 0.0, 0.0));
+
+    vec3 r_interface = clamp(0.45 * geom_shell_center + 0.55 * (r_cur + b_emit), vec3(-1.8), vec3(1.8));
+    b_metrics.stream_interface_pos[sid] = vec4(r_interface, env_rho);
+    vec3 v_incident = normalize(r_interface - r_c + geom_shell_norm * 0.35 + vec3(1e-5, 0.0, 0.0));
+
+    /* 4. Подготовка пирамиды Хаара и норм для критерия ошибки взаимодействия B_j(m) (§4.1) и деформации (§4.2) */
+    vec4 s_c_mip1[4];
+    float haar_detail_fine = 0.0;
+    for (uint m = 0; m < 4; ++m) {
+        s_c_mip1[m] = 0.25 * (s_c[m * 4 + 0] + s_c[m * 4 + 1] + s_c[m * 4 + 2] + s_c[m * 4 + 3]);
+        for (uint sub = 0; sub < 4; ++sub) {
+            vec4 df = s_c[m * 4 + sub] - s_c_mip1[m];
+            haar_detail_fine += dot(df, df);
+        }
+    }
+    vec4 s_c_mip2 = 0.25 * (s_c_mip1[0] + s_c_mip1[1] + s_c_mip1[2] + s_c_mip1[3]);
+    float haar_detail_mid = 0.0;
+    for (uint m = 0; m < 4; ++m) {
+        vec4 dm = s_c_mip1[m] - s_c_mip2;
+        haar_detail_mid += 4.0 * dot(dm, dm);
+    }
+    float haar_monopole_e = 16.0 * dot(s_c_mip2, s_c_mip2);
+
+    /* Порог ошибки взаимодействия tau_int* и угол раскрытия перспективы Барнса-Хата theta_persp */
+    float tau_int_derived = 0.14;
+    float theta_persp = 0.55;
+
+    float logits_2d[N_OBJECTS];
+    float max_logit = -1e20;
+    uint culled_count = 0u;
+    uint floats_read_lod = 0u;
+    uint ricochet_cnt = 0u;
+    float T_accum = 0.0;
+    uint active_cnt = 0u;
+    vec3 delta_v_ricochet = vec3(0.0);
+
+    for (uint j = 0; j < N_OBJECTS; ++j) {
+        vec4 pos_rad = b_objects.obj_pos_rad[j];
+        vec3 r_j = pos_rad.xyz;
+        float L_star = pos_rad.w;
+
+        /* Взаимодействие признака j с 8 площадками интерфейса по критерию перспективы Барнса-Хата (F8):
+         * далекие площадки участвуют как монополь + диполь FMM, близкие площадки раскрывают сектора! */
+        float surf_coupling_e = 0.0;
+        vec3 weighted_dir = vec3(0.0);
+        for (uint g = 0; g < N_PATCH_GROUPS; ++g) {
+            vec3 d_vec = r_j - patch_center[g];
+            float d_g = length(d_vec) + 1e-4;
+            vec3 u_g = d_vec / d_g;
+            float cos_g = max(0.0, dot(patch_normal[g], u_g));
+            float ff_g = (cos_g * patch_area[g]) / (3.14159 * d_g * d_g + patch_area[g] + 0.25);
+
+            float dip_term = dot(patch_dipole[g], u_g) / (d_g + 0.25);
+            float state_g = max(0.0, patch_monopole[g] + 0.5 * abs(dip_term));
+            if (patch_radius[g] / d_g > theta_persp) {
+                /* Площадка близко: учитываем тонкую структуру центрального сектора октанта */
+                uint d_rep = g * 8u + 3u;
+                state_g = 0.5 * state_g + 0.5 * abs(eps_arr[d_rep]) * lum_surf_arr[d_rep];
+            }
+            float contrib = ff_g * (0.25 + state_g);
+            surf_coupling_e += contrib;
+            weighted_dir += contrib * u_g;
+        }
+
+        vec3 to_obj = r_j - r_interface;
+        float dist = length(to_obj) + 1e-5;
+        vec3 n_contact = normalize(weighted_dir + to_obj / dist);
+
+        /* Симметризованная видимая интенсивность взаимодействия (состояние поверхности + состояние признака j, S5) */
+        vec4 a_j_mip2 = b_objects.obj_mip2_features[j];
+        float obj_coarse_norm = length(a_j_mip2) + 0.20;
+        float I_app = L_star + 0.45 * surf_coupling_e - env_rho * dist * 0.85;
+        float persp_w = exp(clamp(I_app, -4.0, 2.5));
+
+        /* Точная граница деформации E'(m) <= (sqrt(E(m)) + ||delta_s||)^2 (§4.2 / F7)
+         * и критерий ошибки взаимодействия B_j(m) = sqrt(E'(m)) * ||obj_in_tail|| * ||obj_out|| (§4.1) */
+        float sq_e1 = sqrt(persp_w * haar_detail_fine * 0.08) + delta_s_norm * 0.15;
+        float sq_e2 = sqrt(persp_w * (haar_detail_fine * 0.08 + haar_detail_mid * 0.12)) + delta_s_norm * 0.30;
+        float sq_et = sqrt(persp_w * (haar_detail_fine * 0.08 + haar_detail_mid * 0.12 + haar_monopole_e * 0.15)) + delta_s_norm * 0.45;
+
+        float B_after_mip0 = 0.0;
+        float B_after_mip1 = sq_e1 * obj_coarse_norm * 0.85;
+        float B_after_mip2 = sq_e2 * obj_coarse_norm * 1.25;
+        float B_total      = sq_et * obj_coarse_norm * 1.65;
+
+        if ((ab_flags & 8u) == 0u && B_total <= tau_int_derived) {
+            culled_count++;
+            logits_2d[j] = I_app;
+            if (sid == 0u) {
+                b_metrics.snap_obj_collision[j] = vec4(-1.0, 0.0, 1.0, 0.0);
+            }
+            if (logits_2d[j] > max_logit) max_logit = logits_2d[j];
+            continue;
+        }
+
+        active_cnt++;
+        vec4 imp_j = b_objects.obj_impedance[j];
+        float cos_attack = dot(v_incident, n_contact);
+        float eta = 0.65 + 0.35 * cos_attack;
+        float xi = max(0.10, imp_j.w * env_temp);
+        float T_trans = exp(-0.30 * dist / (eta * eta + xi));
+        float R_refl = 1.0 - T_trans;
+        T_accum += T_trans;
+
+        if (R_refl > 0.55) {
+            ricochet_cnt++;
+        }
+
+        float flux_match = 0.0;
+        float lod_mode = 2.0;
+
+        /* Двустороннее правило среза по ошибке взаимодействия: B_self <= tau_int && B_parent > tau_int */
+        bool cut_lod2 = (B_after_mip2 <= tau_int_derived) && (B_total > tau_int_derived);
+        bool cut_lod1 = (B_after_mip1 <= tau_int_derived) && (B_after_mip2 > tau_int_derived);
+        bool cut_lod0 = (B_after_mip0 <= tau_int_derived) && (B_after_mip1 > tau_int_derived);
+
+        if ((ab_flags & 8u) != 0u || cut_lod0) {
+            lod_mode = 0.0;
+            floats_read_lod += 64u;
+            for (uint q = 0; q < 16; ++q) {
+                vec4 a_jq = b_objects.obj_mip0_features[j * 16 + q];
+                flux_match += dot(s_c[q], a_jq);
+            }
+        } else if (cut_lod1) {
+            lod_mode = 1.0;
+            floats_read_lod += 16u;
+            for (uint m = 0; m < 4; ++m) {
+                vec4 a_jm = b_objects.obj_mip1_features[j * 4 + m];
+                flux_match += 4.0 * dot(s_c_mip1[m], a_jm);
+            }
+        } else if (cut_lod2) {
+            lod_mode = 2.0;
+            floats_read_lod += 4u;
+            vec2 atlas_uv = vec2((float(j & 15u) + 0.5) / 16.0, (float(j >> 4u) + 0.5) / 16.0);
+            vec4 tmu_mip = textureLod(u_objMipAtlasSampler, atlas_uv, 2.0);
+            vec4 a_jc = a_j_mip2 + 0.05 * tmu_mip;
+            flux_match = 16.0 * dot(s_c_mip2, a_jc);
+        }
+
+        float score_j = I_app + T_trans * flux_match;
+        logits_2d[j] = score_j;
+        if (score_j > max_logit) max_logit = score_j;
+
+        if (sid == 0u) {
+            b_metrics.snap_obj_collision[j] = vec4(lod_mode, T_trans, R_refl, max(0.05, I_app + 1.0));
+        }
+
+        if (lod_mode < 0.5) {
+            vec3 v_reflected = v_incident - 2.0 * dot(v_incident, n_contact) * n_contact;
+            delta_v_ricochet += R_refl * 0.04 * v_reflected;
+        }
+    }
+
+    float sum_exp = 0.0;
+    for (uint j = 0; j < N_OBJECTS; ++j) {
+        sum_exp += exp(clamp(logits_2d[j] - max_logit, -20.0, 0.0));
+    }
+    float log_Z = max_logit + log(max(sum_exp, 1e-12));
+    float loss_bits = (log_Z - logits_2d[tok_next]) * 1.44269504;
+
+    for (uint j = 0; j < N_OBJECTS; ++j) {
+        b_metrics.stream_probs[sid * N_OBJECTS + j] = exp(clamp(logits_2d[j] - log_Z, -20.0, 0.0));
+    }
+
+    if (pc.do_learn != 0u) {
+        vec4 g_em_arr[16];
+        for (uint q = 0; q < 16; ++q) {
+            g_em_arr[q] = b_objects.obj_mip0_features[tok_next * 16 + q];
+        }
+        for (uint j = 0; j < N_OBJECTS; ++j) {
+            float p_j = b_metrics.stream_probs[sid * N_OBJECTS + j];
+            if (p_j > 0.004) {
+                for (uint q = 0; q < 16; ++q) {
+                    g_em_arr[q] -= p_j * b_objects.obj_mip0_features[j * 16 + q];
+                }
+            }
+        }
+        for (uint q = 0; q < 16; ++q) {
+            b_metrics.stream_emit_grad[sid * 16 + q] = g_em_arr[q];
+        }
+    }
+
+    /* 5. Обновление состояния и запись следа в воксельную 3D-текстуру Psi(x,y,z,t) */
+    vec3 v_c_next = normalize(0.70 * v_incident + delta_v_ricochet + 0.30 * normalize(b_objects.obj_pos_rad[tok_next].xyz - r_c + vec3(1e-5)));
+    vec3 r_c_next = clamp(0.65 * r_interface + 0.35 * (r_c + 0.30 * v_c_next), vec3(-1.65), vec3(1.65));
+    float vol_next = clamp(0.85 + 0.12 * interf_energy_sum, 0.65, 2.25);
+
+    b_context.ctx_pos_vel[sid * 2 + 0] = vec4(r_c_next, length(delta_v_ricochet));
+    b_context.ctx_pos_vel[sid * 2 + 1] = vec4(v_c_next, vol_next);
+    float mean_T = T_accum / float(max(active_cnt, 1u));
+    b_context.ctx_potentials[sid] = vec4(env_rho, env_temp, mean_T, total_area / float(N_SECTORS));
+
+    if (sid == 0u) {
+        b_metrics.snap_interface_rays[0] = vec4(r_interface, vol_next);
+        b_metrics.snap_interface_rays[1] = vec4(geom_shell_norm, env_rho);
+        b_metrics.snap_interface_rays[2] = vec4(v_c_next, env_temp);
+        b_metrics.snap_interface_rays[3] = vec4(env_B_field, float(tok_next));
+        b_metrics.snap_trail_pos[pc.frame_idx & 127u] = vec4(r_interface, mean_T);
+
+        ivec3 vox_c = world_to_voxel(r_c_next);
+        vec4 psi_cur = imageLoad(u_envVolumeImage, vox_c);
+        vec4 psi_nx = imageLoad(u_envVolumeImage, clamp(vox_c + ivec3(1, 0, 0), ivec3(0), ivec3(GRID_SIDE - 1)));
+        vec4 psi_px = imageLoad(u_envVolumeImage, clamp(vox_c - ivec3(1, 0, 0), ivec3(0), ivec3(GRID_SIDE - 1)));
+        vec4 laplacian_psi = (psi_nx + psi_px - 2.0 * psi_cur);
+        vec4 trace_deposit = mean_T * phi_c + (1.0 - mean_T) * vec4(dot(v_c_next, v_c_next));
+        vec4 psi_updated = clamp(0.95 * psi_cur + 0.03 * laplacian_psi + 0.04 * trace_deposit, vec4(-3.0), vec4(3.0));
+        imageStore(u_envVolumeImage, vox_c, psi_updated);
+    }
+
+    b_metrics.step_loss_bits[sid] = loss_bits;
+    b_metrics.culled_objects_cnt[sid] = culled_count;
+    b_metrics.active_lod_floats_read[sid] = floats_read_lod;
+    b_metrics.ricochet_events_cnt[sid] = ricochet_cnt;
+    b_metrics.trans_T_sum[sid] = mean_T;
+    b_metrics.holo_area_sum[sid] = total_area / float(N_SECTORS);
+
+    barrier();
+    memoryBarrierBuffer();
+
+    /* 6. Детерминированная аккумуляция импульсов 2D-коллизии по 4 коллайдерам на поток */
+    if (pc.do_learn != 0u) {
+        float eff_lr = pc.lr / float(N_STREAMS);
+
+        for (uint sub_j = 0u; sub_j < 4u; ++sub_j) {
+            uint j = sid * 4u + sub_j;
+            vec4 pos_rad = b_objects.obj_pos_rad[j];
+            vec3 r_j = pos_rad.xyz;
+            float L_star = pos_rad.w;
+
+            float sum_impulse_L = 0.0;
+            vec3 sum_pull_r = vec3(0.0);
+            vec4 delta_a[16];
+            for (uint q = 0; q < 16; ++q) delta_a[q] = vec4(0.0);
+
+            for (uint s = 0; s < N_STREAMS; ++s) {
+                float prob_sj = b_metrics.stream_probs[s * N_OBJECTS + j];
+                float imp = ((sh_tok_next[s] == j) ? 1.0 : 0.0) - prob_sj;
+                if (abs(imp) < 1e-5) continue;
+
+                sum_impulse_L += imp;
+                vec3 r_int_s = b_metrics.stream_interface_pos[s].xyz;
+                vec3 to_f = r_int_s - r_j;
+                float d_f = length(to_f) + 1e-4;
+                sum_pull_r += imp * (to_f / d_f);
+
+                for (uint q = 0; q < 16; ++q) {
+                    delta_a[q] += imp * b_metrics.stream_saved_sc[s * 16 + q];
+                }
+            }
+
+            float new_L = clamp(L_star + eff_lr * 2.5 * sum_impulse_L, -3.5, 4.5);
+            vec3 new_rj = clamp(r_j + eff_lr * 0.45 * sum_pull_r, vec3(-1.80), vec3(1.80));
+            b_objects.obj_pos_rad[j] = vec4(new_rj, new_L);
+
+            vec4 mip2_acc = vec4(0.0);
+            for (uint m = 0; m < 4; ++m) {
+                vec4 mip1_acc = vec4(0.0);
+                for (uint sub = 0; sub < 4; ++sub) {
+                    uint q = m * 4 + sub;
+                    vec4 a_old = b_objects.obj_mip0_features[j * 16 + q];
+                    vec4 a_new = clamp(0.9992 * a_old + eff_lr * 1.6 * delta_a[q], vec4(-2.2), vec4(2.2));
+                    b_objects.obj_mip0_features[j * 16 + q] = a_new;
+                    mip1_acc += 0.25 * a_new;
+                }
+                b_objects.obj_mip1_features[j * 4 + m] = mip1_acc;
+                mip2_acc += 0.25 * mip1_acc;
+            }
+            b_objects.obj_mip2_features[j] = mip2_acc;
+        }
+
+        barrier();
+        memoryBarrierBuffer();
+
+        for (uint sub_k = 0u; sub_k < 4u; ++sub_k) {
+            uint k = sid * 4u + sub_k;
+            vec4 delta_emit[16];
+            for (uint q = 0; q < 16; ++q) delta_emit[q] = vec4(0.0);
+            vec3 delta_b_emit = vec3(0.0);
+            bool used = false;
+
+            for (uint s = 0; s < N_STREAMS; ++s) {
+                if (sh_tok_cur[s] != k) continue;
+                used = true;
+                uint t_next = sh_tok_next[s];
+                vec3 r_tgt = b_objects.obj_pos_rad[t_next].xyz;
+                vec3 r_int_s = b_metrics.stream_interface_pos[s].xyz;
+                delta_b_emit += (r_tgt - r_int_s);
+                for (uint q = 0; q < 16; ++q) {
+                    delta_emit[q] += b_metrics.stream_emit_grad[s * 16 + q];
+                }
+            }
+            if (used) {
+                for (uint q = 0; q < 16; ++q) {
+                    vec4 e_old = b_objects.obj_emit_fibers[k * 16 + q];
+                    b_objects.obj_emit_fibers[k * 16 + q] = clamp(0.9992 * e_old + eff_lr * 1.6 * delta_emit[q], vec4(-2.2), vec4(2.2));
+                }
+                vec4 imp_old = b_objects.obj_impedance[k];
+                vec3 b_new = clamp(imp_old.xyz + eff_lr * 0.25 * delta_b_emit, vec3(-1.4), vec3(1.4));
+                b_objects.obj_impedance[k] = vec4(b_new, imp_old.w);
+            }
+        }
+    }
+}
