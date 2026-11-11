@@ -1,0 +1,240 @@
+{
+  "params": 45792,
+  "history": [
+    {
+      "step": 1,
+      "smooth_bpc": 8.2009,
+      "relief_bpc": 8.4558,
+      "smooth_stats": {
+        "active_coords_frac": 0.0632,
+        "touched_nodes_frac": 0.2172,
+        "avg_cascade_waves": 2.9844,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.9963,
+        "err_after": 0.9968,
+        "free_energy": 0.4971
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1106,
+        "touched_nodes_frac": 0.3258,
+        "avg_cascade_waves": 3.2031,
+        "relief_area_multiplier": 1.2844,
+        "err_before": 0.9988,
+        "err_after": 1.007,
+        "free_energy": 0.5074
+      }
+    },
+    {
+      "step": 50,
+      "smooth_bpc": 4.5891,
+      "relief_bpc": 4.3559,
+      "smooth_stats": {
+        "active_coords_frac": 0.0634,
+        "touched_nodes_frac": 0.2164,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.9744,
+        "err_after": 0.9797,
+        "free_energy": 0.4802
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1047,
+        "touched_nodes_frac": 0.3134,
+        "avg_cascade_waves": 3.125,
+        "relief_area_multiplier": 1.2747,
+        "err_before": 0.9733,
+        "err_after": 0.9851,
+        "free_energy": 0.4854
+      }
+    },
+    {
+      "step": 100,
+      "smooth_bpc": 4.0344,
+      "relief_bpc": 3.9156,
+      "smooth_stats": {
+        "active_coords_frac": 0.0713,
+        "touched_nodes_frac": 0.2345,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.9635,
+        "err_after": 0.9718,
+        "free_energy": 0.4724
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1093,
+        "touched_nodes_frac": 0.3148,
+        "avg_cascade_waves": 3.0469,
+        "relief_area_multiplier": 1.2765,
+        "err_before": 0.9642,
+        "err_after": 0.9762,
+        "free_energy": 0.4767
+      }
+    },
+    {
+      "step": 150,
+      "smooth_bpc": 3.9749,
+      "relief_bpc": 3.8726,
+      "smooth_stats": {
+        "active_coords_frac": 0.0753,
+        "touched_nodes_frac": 0.2402,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.9414,
+        "err_after": 0.9479,
+        "free_energy": 0.4495
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1122,
+        "touched_nodes_frac": 0.3243,
+        "avg_cascade_waves": 3.1875,
+        "relief_area_multiplier": 1.2766,
+        "err_before": 0.9454,
+        "err_after": 0.9513,
+        "free_energy": 0.4527
+      }
+    },
+    {
+      "step": 200,
+      "smooth_bpc": 3.6021,
+      "relief_bpc": 3.5177,
+      "smooth_stats": {
+        "active_coords_frac": 0.0772,
+        "touched_nodes_frac": 0.2397,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.9179,
+        "err_after": 0.9207,
+        "free_energy": 0.4241
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1144,
+        "touched_nodes_frac": 0.3297,
+        "avg_cascade_waves": 3.0781,
+        "relief_area_multiplier": 1.2759,
+        "err_before": 0.9238,
+        "err_after": 0.9239,
+        "free_energy": 0.4271
+      }
+    },
+    {
+      "step": 250,
+      "smooth_bpc": 3.5783,
+      "relief_bpc": 3.4673,
+      "smooth_stats": {
+        "active_coords_frac": 0.078,
+        "touched_nodes_frac": 0.2424,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.906,
+        "err_after": 0.9046,
+        "free_energy": 0.4094
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1154,
+        "touched_nodes_frac": 0.3296,
+        "avg_cascade_waves": 3.1562,
+        "relief_area_multiplier": 1.2757,
+        "err_before": 0.9129,
+        "err_after": 0.9059,
+        "free_energy": 0.4106
+      }
+    },
+    {
+      "step": 300,
+      "smooth_bpc": 3.4033,
+      "relief_bpc": 3.3566,
+      "smooth_stats": {
+        "active_coords_frac": 0.0791,
+        "touched_nodes_frac": 0.2438,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.8841,
+        "err_after": 0.8803,
+        "free_energy": 0.3877
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1154,
+        "touched_nodes_frac": 0.3291,
+        "avg_cascade_waves": 3.0469,
+        "relief_area_multiplier": 1.2698,
+        "err_before": 0.8945,
+        "err_after": 0.8799,
+        "free_energy": 0.3875
+      }
+    },
+    {
+      "step": 350,
+      "smooth_bpc": 3.504,
+      "relief_bpc": 3.4645,
+      "smooth_stats": {
+        "active_coords_frac": 0.0802,
+        "touched_nodes_frac": 0.2443,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.872,
+        "err_after": 0.864,
+        "free_energy": 0.3737
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1172,
+        "touched_nodes_frac": 0.3275,
+        "avg_cascade_waves": 3.1094,
+        "relief_area_multiplier": 1.2734,
+        "err_before": 0.8879,
+        "err_after": 0.8657,
+        "free_energy": 0.3751
+      }
+    },
+    {
+      "step": 400,
+      "smooth_bpc": 3.2842,
+      "relief_bpc": 3.2013,
+      "smooth_stats": {
+        "active_coords_frac": 0.0801,
+        "touched_nodes_frac": 0.2426,
+        "avg_cascade_waves": 3.0,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.8548,
+        "err_after": 0.842,
+        "free_energy": 0.3548
+      },
+      "relief_stats": {
+        "active_coords_frac": 0.1175,
+        "touched_nodes_frac": 0.3278,
+        "avg_cascade_waves": 3.1406,
+        "relief_area_multiplier": 1.2695,
+        "err_before": 0.8738,
+        "err_after": 0.8426,
+        "free_energy": 0.3553
+      }
+    }
+  ],
+  "validation": {
+    "smooth_sphere": {
+      "bpc": 3.3409,
+      "ppl": 10.13,
+      "stats": {
+        "active_coords_frac": 0.0804081848826955,
+        "touched_nodes_frac": 0.2420185574218395,
+        "avg_cascade_waves": 2.285601265822785,
+        "relief_area_multiplier": 1.0,
+        "err_before": 0.8515782160095021,
+        "err_after": 0.8374230789044236,
+        "free_energy": 0.3558631611021259
+      }
+    },
+    "relief_figure": {
+      "bpc": 3.2732,
+      "ppl": 9.67,
+      "stats": {
+        "active_coords_frac": 0.11811068885417396,
+        "touched_nodes_frac": 0.3295300961088955,
+        "avg_cascade_waves": 2.7838212025316458,
+        "relief_area_multiplier": 1.2687549844054105,
+        "err_before": 0.86779828598322,
+        "err_after": 0.8359655510940696,
+        "free_energy": 0.35547571997099287
+      }
+    }
+  }
+}
