@@ -1,0 +1,137 @@
+{
+  "params": 46179,
+  "history": [
+    {
+      "step": 1,
+      "bpc": 9.0143,
+      "active_coords_frac": 0.141,
+      "touched_nodes_frac": 0.4134,
+      "avg_cascade_waves": 2.9531,
+      "holographic_area": 2.1991,
+      "sphere_volume": 1.1553,
+      "avg_luminance": 1.1752,
+      "err_before": 1.0046,
+      "err_after": 1.0104,
+      "free_energy": 0.5107
+    },
+    {
+      "step": 50,
+      "bpc": 4.3329,
+      "active_coords_frac": 0.142,
+      "touched_nodes_frac": 0.4055,
+      "avg_cascade_waves": 2.9844,
+      "holographic_area": 2.22,
+      "sphere_volume": 1.1384,
+      "avg_luminance": 1.1667,
+      "err_before": 0.9728,
+      "err_after": 0.9836,
+      "free_energy": 0.4839
+    },
+    {
+      "step": 100,
+      "bpc": 3.8478,
+      "active_coords_frac": 0.1485,
+      "touched_nodes_frac": 0.4131,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.2169,
+      "sphere_volume": 1.1358,
+      "avg_luminance": 1.165,
+      "err_before": 0.963,
+      "err_after": 0.9734,
+      "free_energy": 0.4739
+    },
+    {
+      "step": 150,
+      "bpc": 3.805,
+      "active_coords_frac": 0.15,
+      "touched_nodes_frac": 0.4166,
+      "avg_cascade_waves": 2.9688,
+      "holographic_area": 2.2158,
+      "sphere_volume": 1.1311,
+      "avg_luminance": 1.1624,
+      "err_before": 0.9449,
+      "err_after": 0.9483,
+      "free_energy": 0.4499
+    },
+    {
+      "step": 200,
+      "bpc": 3.4816,
+      "active_coords_frac": 0.1509,
+      "touched_nodes_frac": 0.4218,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.1974,
+      "sphere_volume": 1.1235,
+      "avg_luminance": 1.1583,
+      "err_before": 0.9237,
+      "err_after": 0.9177,
+      "free_energy": 0.4214
+    },
+    {
+      "step": 250,
+      "bpc": 3.45,
+      "active_coords_frac": 0.154,
+      "touched_nodes_frac": 0.4249,
+      "avg_cascade_waves": 2.9844,
+      "holographic_area": 2.2058,
+      "sphere_volume": 1.1216,
+      "avg_luminance": 1.1571,
+      "err_before": 0.9147,
+      "err_after": 0.8997,
+      "free_energy": 0.405
+    },
+    {
+      "step": 300,
+      "bpc": 3.2772,
+      "active_coords_frac": 0.1556,
+      "touched_nodes_frac": 0.4313,
+      "avg_cascade_waves": 2.9688,
+      "holographic_area": 2.1829,
+      "sphere_volume": 1.1162,
+      "avg_luminance": 1.1542,
+      "err_before": 0.898,
+      "err_after": 0.8736,
+      "free_energy": 0.3818
+    },
+    {
+      "step": 350,
+      "bpc": 3.4281,
+      "active_coords_frac": 0.156,
+      "touched_nodes_frac": 0.4316,
+      "avg_cascade_waves": 3.0,
+      "holographic_area": 2.1711,
+      "sphere_volume": 1.1122,
+      "avg_luminance": 1.152,
+      "err_before": 0.8895,
+      "err_after": 0.8591,
+      "free_energy": 0.3694
+    },
+    {
+      "step": 400,
+      "bpc": 3.1489,
+      "active_coords_frac": 0.1581,
+      "touched_nodes_frac": 0.4327,
+      "avg_cascade_waves": 2.9844,
+      "holographic_area": 2.1812,
+      "sphere_volume": 1.1085,
+      "avg_luminance": 1.15,
+      "err_before": 0.8759,
+      "err_after": 0.8373,
+      "free_energy": 0.3508
+    }
+  ],
+  "validation": {
+    "bpc": 3.2046,
+    "ppl": 9.22,
+    "stats": {
+      "active_coords_frac": 0.1573294466169834,
+      "touched_nodes_frac": 0.43411911633219336,
+      "avg_cascade_waves": 2.263251582278481,
+      "holographic_area": 2.1713433028257723,
+      "sphere_volume": 1.1088089567102208,
+      "avg_luminance": 1.1500750374096105,
+      "err_before": 0.8696506670735116,
+      "err_after": 0.8314196670522229,
+      "free_energy": 0.35033056404017193
+    }
+  }
+}
